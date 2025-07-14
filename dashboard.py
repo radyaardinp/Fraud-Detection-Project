@@ -1,9 +1,18 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import matplotlib as py.plot
+import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 import random
+import os
+import subprocess
+
+# Cek apakah matplotlib sudah terinstall, jika tidak maka install dulu
+try:
+    import matplotlib.pyplot as plt
+except ModuleNotFoundError:
+    subprocess.check_call(["pip", "install", "matplotlib"])
+    import matplotlib.pyplot as plt
 
 # Page configuration
 st.set_page_config(
