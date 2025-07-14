@@ -6,22 +6,17 @@ from datetime import datetime, timedelta
 import random
 import os
 import subprocess
-
-# Cek apakah matplotlib sudah terinstall, jika tidak maka install dulu
-try:
-    import matplotlib.pyplot as plt
-except ModuleNotFoundError:
-    subprocess.check_call(["pip", "install", "matplotlib"])
-    import matplotlib.pyplot as plt
+import joblib
+from lime.lime_tabular import LimeTabularExplainer
 
 # Page configuration
 st.set_page_config(
-    page_title="Bank Fraud Detection Dashboard",
+    page_title="Online Transaction Fraud Detection Dashboard",
     page_icon="🏦",
     layout="wide",
-    initial_sidebar_state="expanded"
 )
 
+st.title ("Online Transaction Fraud Detection Simulation)
 # Custom CSS for better styling
 st.markdown("""
 <style>
