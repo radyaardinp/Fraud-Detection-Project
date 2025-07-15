@@ -35,9 +35,9 @@ if uploaded_file:
     if 'fraud' not in df.columns:
         st.error("❌ Kolom 'fraud' tidak ditemukan.")
     else:
-        # Convert string label jadi angka (jika perlu)
+        # Convert string label jadi angka 
         if df['fraud'].dtype == object:
-            df['fraud'] = df['fraud'].str.strip().str.lower()
+            df['fraud'] = df['fraud']
             df['fraud'] = df['fraud'].map({'Not Fraud': 0, 'Fraud': 1})
     
         # Cek kalau ada nilai NaN setelah map
