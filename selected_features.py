@@ -8,5 +8,5 @@ FEATURES = [
     'feeAmount',
     'status',
     'statusCode',
-    'selisih_waktu_sec'
+    'selisih_waktu (sec)'
 ]
