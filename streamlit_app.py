@@ -35,20 +35,18 @@ if uploaded_file:
     if 'fraud' not in df.columns:
         st.error("❌ Kolom 'fraud' tidak ditemukan.")
     else:
-        st.divider()
-
-    # Convert string label jadi angka (jika perlu)
-    if df['fraud_label'].dtype == object:
-        df['fraud_label'] = df['fraud_label'].str.strip().str.lower()
-        df['fraud_label'] = df['fraud_label'].map({'non-fraud': 0, 'fraud': 1})
+        # Convert string label jadi angka (jika perlu)
+        if df['fraud'].dtype == object:
+            df['fraud'] = df['fraud'].str.strip().str.lower()
+            df['fraud'] = df['fraud'].map({'non-fraud': 0, 'fraud': 1})
     
-    # Cek kalau ada nilai NaN setelah map
-    if df['fraud_label'].isnull().any():
-        st.warning("⚠️ Ada label yang tidak dikenali di kolom fraud_label. Baris tersebut akan dihapus.")
-        df = df.dropna(subset=['fraud_label'])
+        # Cek kalau ada nilai NaN setelah map
+        if df['fraud'].isnull().any():
+            st.warning("⚠️ Ada label yang tidak dikenali di kolom fraud. Baris tersebut akan dihapus.")
+            df = df.dropna(subset=['fraud'])
 
-    # Ubah ke integer biar aman diproses
-    df['fraud_label'] = df['fraud_label'].astype(int)
+        # Ubah ke integer biar aman diproses
+        df['fraud'] = df['fraud'].astype(int)
 
 
         # ────────── VISUALISASI SUMMARY ────────── #
