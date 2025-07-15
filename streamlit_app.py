@@ -1,68 +1,64 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
-import joblib
+import matplotlib.pyplot as plt
+import seaborn as sns
 
-from feature_engineering import preprocess_form_input
-from normalize import normalize_data
-from predict_pipeline import predict_fraud
-from lime_explainer import explain_instance
-from selected_features import FEATURES
+# Atur tampilan halaman
+st.set_page_config(page_title="Fraud Detection Dashboard", layout="wide")
 
-st.set_page_config(page_title="Online Payment Transaction Fraud Detection", layout="centered")
+# Title
+st.title("📊 Fraud Detection Dashboard")
+st.markdown("Upload data historis transaksi untuk analisis otomatis dan visualisasi fraud detection.")
 
-st.title("💳 Deteksi Fraud Transaksi Online")
+# Upload file CSV
+uploaded_file = st.file_uploader("📁 Upload file CSV transaksi", type=["csv"])
 
-st.markdown("Isi detail transaksi di bawah ini untuk mengetahui kemungkinan fraud.")
+# Load data
+@st.cache_data
+def load_data(file):
+    return pd.read_csv(file)
 
-# --- Form Input ---
-with st.form(key="fraud_form"):
-    amount = st.number_input("Nominal Transaksi (amount)", min_value=0.0)
-    inquiryAmount = st.number_input("Nominal Inquiry", min_value=0.0)
-    merchant = st.text_input("Merchant ID")
-    settlementAmount = st.number_input("Nominal Settlement", min_value=0.0)
-    feeAmount = st.number_input("Fee Amount", min_value=0.0)
-    discountAmount = st.number_input("Discount Amount", min_value=0.0)
-    paymentSource = st.text_input("Sumber Pembayaran (paymentSource)")
-    status = st.text_input("Status Transaksi")
-    statusCode = st.text_input("Kode Status Transaksi")
-    createdTime = st.datetime_input("Waktu Transaksi Dimulai (createdTime)")
-    updatedTime = st.datetime_input("Waktu Transaksi Selesai (updatedTime)")
+# Main block
+if uploaded_file:
+    df = load_data(uploaded_file)
+    st.success("✅ Data berhasil dimuat!")
+    
+    # Tampilkan 5 baris pertama
+    with st.expander("🔍 Lihat data mentah"):
+        st.dataframe(df.head())
 
-    submit = st.form_submit_button("Prediksi Fraud")
+    st.divider()
 
-if submit:
-    with st.spinner("Sedang memproses..."):
-        # 1. Kumpulkan input ke dictionary
-        input_dict = {
-            'amount': amount,
-            'inquiryAmount': inquiryAmount,
-            'merchant': merchant,
-            'settlementAmount': settlementAmount,
-            'feeAmount': feeAmount,
-            'discountAmount': discountAmount,
-            'paymentSource': paymentSource,
-            'status': status,
-            'statusCode': statusCode,
-            'createdTime': createdTime,
-            'updatedTime': updatedTime
-        }
+    # Cek apakah kolom 'fraud_label' ada
+    if 'fraud_label' not in df.columns:
+        st.error("❌ Kolom 'fraud_label' tidak ditemukan! Harap pastikan file memiliki kolom tersebut.")
+    else:
+        # Summary angka
+        total_transaksi = len(df)
+        total_fraud = df['fraud_label'].sum()
+        total_nonfraud = total_transaksi - total_fraud
+        fraud_rate = round((total_fraud / total_transaksi) * 100, 2)
 
-        # 2. Preprocessing (feature engineering)
-        df_features = preprocess_form_input(input_dict)
+        col1, col2, col3, col4 = st.columns(4)
+        col1.metric("Total Transaksi", f"{total_transaksi:,}")
+        col2.metric("Jumlah Fraud", f"{total_fraud:,}")
+        col3.metric("Jumlah Non-Fraud", f"{total_nonfraud:,}")
+        col4.metric("Fraud Rate", f"{fraud_rate}%")
 
-        # 3. Normalisasi
-        df_scaled = normalize_data(df_features)
+        st.divider()
 
-        # 4. Prediksi
-        prediction, probability = predict_fraud(df_scaled)
+        # Grafik pie chart fraud vs non-fraud
+        st.subheader("📌 Distribusi Fraud vs Non-Fraud")
+        fraud_counts = df['fraud_label'].value_counts().rename({0: 'Non-Fraud', 1: 'Fraud'})
 
-        label = "🚨 FRAUDULEN" if prediction == 1 else "✅ AMAN"
-        st.subheader(f"Hasil Prediksi: {label}")
-        st.write(f"Probabilitas Fraud: `{probability*100:.2f}%`")
+        fig, ax = plt.subplots()
+        ax.pie(fraud_counts, labels=fraud_counts.index, autopct='%1.1f%%', startangle=90, colors=["#00cc96", "#ff6361"])
+        ax.axis('equal')
+        st.pyplot(fig)
 
-        # 5. XAI - LIME
-        st.markdown("---")
-        st.markdown("### 🔍 Penjelasan Model (LIME)")
-        lime_html = explain_instance(df_scaled)
-        st.components.v1.html(lime_html, height=400, scrolling=True)
+        st.divider()
+
+        # (Tambahan visualisasi lanjutan bisa dimasukkan di bawah sini...)
+
+else:
+    st.info("⬆️ Silakan upload file .csv terlebih dahulu untuk memulai analisis.")
