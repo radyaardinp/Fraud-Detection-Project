@@ -2,38 +2,43 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+import pickle
+import numpy as np
+from lime.lime_tabular import LimeTabularExplainer
 
-# Atur tampilan halaman
 st.set_page_config(page_title="Fraud Detection Dashboard", layout="wide")
-
-# Title
 st.title("📊 Fraud Detection Dashboard")
-st.markdown("Upload data historis transaksi untuk analisis otomatis dan visualisasi fraud detection.")
+st.markdown("Unggah data historis transaksi untuk analisis otomatis dan deteksi fraud berdasarkan model ELM yang telah dilatih.")
 
 # Upload file CSV
 uploaded_file = st.file_uploader("📁 Upload file CSV transaksi", type=["csv"])
 
-# Load data
 @st.cache_data
 def load_data(file):
     return pd.read_csv(file)
 
-# Main block
+@st.cache_resource
+def load_model_components():
+    model = pickle.load(open("elm_model.pkl", "rb"))
+    scaler = pickle.load(open("scaler.pkl", "rb"))
+    selected_features = pickle.load(open("selected_features.pkl", "rb"))
+    return model, scaler, selected_features
+
 if uploaded_file:
     df = load_data(uploaded_file)
     st.success("✅ Data berhasil dimuat!")
-    
-    # Tampilkan 5 baris pertama
-    with st.expander("🔍 Lihat data mentah"):
+
+    # Data mentah
+    with st.expander("🔍 Lihat Data"):
         st.dataframe(df.head())
 
-    st.divider()
-
-    # Cek apakah kolom 'fraud_label' ada
     if 'fraud_label' not in df.columns:
-        st.error("❌ Kolom 'fraud_label' tidak ditemukan! Harap pastikan file memiliki kolom tersebut.")
+        st.error("❌ Kolom 'fraud_label' tidak ditemukan.")
     else:
-        # Summary angka
+        st.divider()
+
+        # ────────── VISUALISASI SUMMARY ────────── #
+        st.subheader("📈 Ringkasan Transaksi")
         total_transaksi = len(df)
         total_fraud = df['fraud_label'].sum()
         total_nonfraud = total_transaksi - total_fraud
@@ -47,10 +52,9 @@ if uploaded_file:
 
         st.divider()
 
-        # Grafik pie chart fraud vs non-fraud
+        # ────────── PIE CHART ────────── #
         st.subheader("📌 Distribusi Fraud vs Non-Fraud")
         fraud_counts = df['fraud_label'].value_counts().rename({0: 'Non-Fraud', 1: 'Fraud'})
-
         fig, ax = plt.subplots()
         ax.pie(fraud_counts, labels=fraud_counts.index, autopct='%1.1f%%', startangle=90, colors=["#00cc96", "#ff6361"])
         ax.axis('equal')
@@ -58,7 +62,66 @@ if uploaded_file:
 
         st.divider()
 
-        # (Tambahan visualisasi lanjutan bisa dimasukkan di bawah sini...)
+        # ────────── WAKTU: PER JAM ────────── #
+        if 'trx_hour' in df.columns:
+            st.subheader("🕒 Distribusi Transaksi per Jam")
+            trx_hour_df = df.groupby(['trx_hour', 'fraud_label']).size().unstack().fillna(0)
+            trx_hour_df.columns = ['Non-Fraud', 'Fraud']
 
+            fig, ax = plt.subplots(figsize=(10, 4))
+            trx_hour_df.plot(kind='bar', stacked=True, ax=ax, color=["#00cc96", "#ff6361"])
+            ax.set_xlabel("Jam Transaksi (0-23)")
+            ax.set_ylabel("Jumlah Transaksi")
+            st.pyplot(fig)
+
+        # ────────── MERCHANT ────────── #
+        if 'merchantId' in df.columns:
+            st.subheader("🏬 Top Merchant dengan Fraud Tertinggi")
+            top_fraud_merchant = df[df['fraud_label'] == 1].groupby('merchantId').size().sort_values(ascending=False).head(10)
+            fig, ax = plt.subplots(figsize=(10, 4))
+            top_fraud_merchant.plot(kind='bar', ax=ax, color="#ff6361")
+            ax.set_ylabel("Jumlah Fraud")
+            st.pyplot(fig)
+
+        st.divider()
+
+        # ────────── DETEKSI FRAUD DENGAN ELM ────────── #
+        st.subheader("🔍 Deteksi Otomatis Transaksi Mencurigakan")
+
+        model, scaler, selected_features = load_model_components()
+
+        if all(f in df.columns for f in selected_features):
+            X_input = df[selected_features]
+            X_scaled = scaler.transform(X_input)
+            y_pred = model.predict(X_scaled)
+
+            df['predicted_fraud'] = y_pred
+            detected = df[df['predicted_fraud'] == 1]
+
+            st.success(f"✅ Terdeteksi {len(detected)} transaksi yang dicurigai sebagai fraud.")
+
+            with st.expander("📄 Lihat Transaksi Mencurigakan"):
+                st.dataframe(detected[['id', 'amount', 'merchantId', 'trx_hour', 'feeAmount', 'predicted_fraud']].head(15))
+
+            # ────────── LIME EXPLAINER ────────── #
+            st.subheader("🧠 Penjelasan Model (XAI)")
+            idx_to_explain = st.number_input("Masukkan index transaksi untuk dijelaskan (0 - {})".format(len(df)-1), min_value=0, max_value=len(df)-1, step=1)
+
+            explainer = LimeTabularExplainer(
+                training_data=X_scaled,
+                feature_names=selected_features,
+                class_names=["Non-Fraud", "Fraud"],
+                mode="classification"
+            )
+
+            exp = explainer.explain_instance(
+                data_row=X_scaled[idx_to_explain],
+                predict_fn=lambda x: model.predict_proba(x)
+            )
+
+            st.write(f"💬 Penjelasan Transaksi ke-{idx_to_explain}:")
+            st.pyplot(exp.as_pyplot_figure())
+        else:
+            st.error("❌ Data tidak memiliki semua fitur yang dibutuhkan untuk prediksi.")
 else:
-    st.info("⬆️ Silakan upload file .csv terlebih dahulu untuk memulai analisis.")
+    st.info("⬆️ Silakan upload file .csv terlebih dahulu.")
