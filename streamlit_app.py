@@ -19,9 +19,9 @@ def load_data(file):
 
 @st.cache_resource
 def load_model_components():
-    model = pickle.load(open("ELM_hyperparameter.pkl", "rb"))
-    scaler = pickle.load(open("scaler.pkl", "rb"))
-    selected_features = pickle.load(open("selected_features.pkl", "rb"))
+    model = pickle.load(open("ELM_hyperparameter.joblib", "rb"))
+    scaler = pickle.load(open("scaler.joblib", "rb"))
+    selected_features = pickle.load(open("selected_features.joblib", "rb"))
     return model, scaler, selected_features
 
 if uploaded_file:
