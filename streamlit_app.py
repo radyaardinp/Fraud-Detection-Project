@@ -38,7 +38,7 @@ if uploaded_file:
         # Convert string label jadi angka (jika perlu)
         if df['fraud'].dtype == object:
             df['fraud'] = df['fraud'].str.strip().str.lower()
-            df['fraud'] = df['fraud'].map({'non-fraud': 0, 'fraud': 1})
+            df['fraud'] = df['fraud'].map({'Not Fraud': 0, 'Fraud': 1})
     
         # Cek kalau ada nilai NaN setelah map
         if df['fraud'].isnull().any():
