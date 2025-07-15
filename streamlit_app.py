@@ -19,7 +19,7 @@ def load_data(file):
 
 @st.cache_resource
 def load_model_components():
-    model = pickle.load(open("elm_model.pkl", "rb"))
+    model = pickle.load(open("ELM_hyperparameter.pkl", "rb"))
     scaler = pickle.load(open("scaler.pkl", "rb"))
     selected_features = pickle.load(open("selected_features.pkl", "rb"))
     return model, scaler, selected_features
@@ -40,7 +40,7 @@ if uploaded_file:
         # ────────── VISUALISASI SUMMARY ────────── #
         st.subheader("📈 Ringkasan Transaksi")
         total_transaksi = len(df)
-        total_fraud = df['fraud_label'].sum()
+        total_fraud = df['fraud'].sum()
         total_nonfraud = total_transaksi - total_fraud
         fraud_rate = round((total_fraud / total_transaksi) * 100, 2)
 
@@ -54,7 +54,7 @@ if uploaded_file:
 
         # ────────── PIE CHART ────────── #
         st.subheader("📌 Distribusi Fraud vs Non-Fraud")
-        fraud_counts = df['fraud_label'].value_counts().rename({0: 'Non-Fraud', 1: 'Fraud'})
+        fraud_counts = df['fraud'].value_counts().rename({0: 'Non-Fraud', 1: 'Fraud'})
         fig, ax = plt.subplots()
         ax.pie(fraud_counts, labels=fraud_counts.index, autopct='%1.1f%%', startangle=90, colors=["#00cc96", "#ff6361"])
         ax.axis('equal')
@@ -65,7 +65,7 @@ if uploaded_file:
         # ────────── WAKTU: PER JAM ────────── #
         if 'trx_hour' in df.columns:
             st.subheader("🕒 Distribusi Transaksi per Jam")
-            trx_hour_df = df.groupby(['trx_hour', 'fraud_label']).size().unstack().fillna(0)
+            trx_hour_df = df.groupby(['trx_hour', 'fraud']).size().unstack().fillna(0)
             trx_hour_df.columns = ['Non-Fraud', 'Fraud']
 
             fig, ax = plt.subplots(figsize=(10, 4))
@@ -77,7 +77,7 @@ if uploaded_file:
         # ────────── MERCHANT ────────── #
         if 'merchantId' in df.columns:
             st.subheader("🏬 Top Merchant dengan Fraud Tertinggi")
-            top_fraud_merchant = df[df['fraud_label'] == 1].groupby('merchantId').size().sort_values(ascending=False).head(10)
+            top_fraud_merchant = df[df['fraud'] == 1].groupby('merchantId').size().sort_values(ascending=False).head(10)
             fig, ax = plt.subplots(figsize=(10, 4))
             top_fraud_merchant.plot(kind='bar', ax=ax, color="#ff6361")
             ax.set_ylabel("Jumlah Fraud")
