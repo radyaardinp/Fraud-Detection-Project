@@ -2,7 +2,9 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+import joblib
 import pickle
+from joblib import load
 import numpy as np
 from lime.lime_tabular import LimeTabularExplainer
 
