@@ -6,7 +6,7 @@ import joblib
 import numpy as np
 from joblib import load
 from lime.lime_tabular import LimeTabularExplainer
-from preprocessing_pipline import preprocess_for_prediction
+from preprocessing_pipeline import preprocess_for_prediction
 
 st.set_page_config(page_title="Fraud Detection Dashboard", layout="wide")
 st.title("📊 Fraud Detection Dashboard")
