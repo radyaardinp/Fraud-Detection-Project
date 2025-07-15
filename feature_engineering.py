@@ -20,3 +20,14 @@ def feature_eng(df):
     df['trx_duration'] = (df['updatedTime'] - df['createdTime']).dt.total_seconds()
 
     return df
+
+
+def preprocess_form_input(data_dict):
+    """
+    Fungsi untuk input manual dari form (1 transaksi).
+    Input: dictionary
+    Output: dataframe hasil feature engineering
+    """
+    df = pd.DataFrame([data_dict])  # buat dataframe 1 baris
+    df_eng = feature_eng(df)        # jalankan feature engineering
+    return df_eng
