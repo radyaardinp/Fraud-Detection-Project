@@ -37,6 +37,20 @@ if uploaded_file:
     else:
         st.divider()
 
+    # Convert string label jadi angka (jika perlu)
+    if df['fraud_label'].dtype == object:
+        df['fraud_label'] = df['fraud_label'].str.strip().str.lower()
+        df['fraud_label'] = df['fraud_label'].map({'non-fraud': 0, 'fraud': 1})
+    
+    # Cek kalau ada nilai NaN setelah map
+    if df['fraud_label'].isnull().any():
+        st.warning("⚠️ Ada label yang tidak dikenali di kolom fraud_label. Baris tersebut akan dihapus.")
+        df = df.dropna(subset=['fraud_label'])
+
+    # Ubah ke integer biar aman diproses
+    df['fraud_label'] = df['fraud_label'].astype(int)
+
+
         # ────────── VISUALISASI SUMMARY ────────── #
         st.subheader("📈 Ringkasan Transaksi")
         total_transaksi = len(df)
