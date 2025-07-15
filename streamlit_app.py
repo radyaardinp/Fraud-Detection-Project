@@ -32,8 +32,8 @@ if uploaded_file:
     with st.expander("🔍 Lihat Data"):
         st.dataframe(df.head())
 
-    if 'fraud_label' not in df.columns:
-        st.error("❌ Kolom 'fraud_label' tidak ditemukan.")
+    if 'fraud' not in df.columns:
+        st.error("❌ Kolom 'fraud' tidak ditemukan.")
     else:
         st.divider()
 
