@@ -5,7 +5,7 @@ import pandas as pd
 #Load FEATURES
 FEATURES = joblib.load("fraud_dashboard/selected_features.joblib")
 
-def load_scaler(path='scaler.joblib'):
+def load_scaler(path='fraud_dashboard/scaler.joblib'):
     return joblib.load(path)
 
 def normalize_data(df, scaler=None):
