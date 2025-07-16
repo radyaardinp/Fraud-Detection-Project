@@ -20,7 +20,7 @@ def elm_predict(X, input_weights, biases, output_weights, activation):
     return y_pred_raw
 
 # Load dan prediksi
-def predict_fraud(X_scaled, model_path="hyperparameter_ELM.pkl"):
+def predict_fraud(X_scaled, model_path="hyperparameter_ELM.joblib"):
     """
     Prediksi fraud menggunakan model ELM custom hasil Optuna.
 
