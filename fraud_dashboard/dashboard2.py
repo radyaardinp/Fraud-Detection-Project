@@ -99,13 +99,46 @@ class FraudDetectionDashboard:
     def perform_prediction(self, df, model, scaler, selected_features):
         """Melakukan prediksi fraud"""
         try:
+            # Debug info
+            st.write(f"🔍 **Debug Info:**")
+            st.write(f"- Data columns: {len(df.columns)} → {list(df.columns)}")
+            st.write(f"- Selected features: {len(selected_features)} → {list(selected_features)}")
+            
+            # Check missing features
+            missing_features = [f for f in selected_features if f not in df.columns]
+            if missing_features:
+                st.error(f"❌ Missing features: {missing_features}")
+                return None, None
+            
+            # Check extra features in data
+            extra_features = [f for f in df.columns if f not in selected_features and f != 'predicted_fraud']
+            if extra_features:
+                st.warning(f"⚠️ Extra features in data (will be ignored): {extra_features}")
+            
+            # Select only the required features
             X_input = df.loc[:, selected_features]
+            st.write(f"- Input shape: {X_input.shape}")
+            st.write(f"- Scaler expects: {scaler.n_features_in_} features")
+            
+            # Check if shapes match
+            if X_input.shape[1] != scaler.n_features_in_:
+                st.error(f"❌ Feature count mismatch:")
+                st.error(f"   - Data has: {X_input.shape[1]} features")
+                st.error(f"   - Scaler expects: {scaler.n_features_in_} features")
+                st.error(f"   - Missing: {scaler.n_features_in_ - X_input.shape[1]} features")
+                return None, None
+            
+            # Perform scaling and prediction
             X_scaled = scaler.transform(X_input.values)
             y_pred = model.predict(X_scaled)
             df['predicted_fraud'] = y_pred
+            
+            st.success(f"✅ Prediction successful! Shape: {X_scaled.shape}")
             return df, X_scaled
+            
         except Exception as e:
             st.error(f"Prediction error: {str(e)}")
+            st.error("Please check your preprocessing pipeline and ensure all required features are generated.")
             return None, None
     
     def create_compact_metrics(self, df):
@@ -236,12 +269,23 @@ class FraudDetectionDashboard:
                 # Preprocessing
                 with st.spinner("Processing..."):
                     df = preprocess_for_prediction(raw_df)
+                    
+                    # Show preprocessing results
+                    st.write("**📊 Preprocessing Results:**")
+                    st.write(f"- Original shape: {raw_df.shape}")
+                    st.write(f"- Processed shape: {df.shape}")
+                    st.write(f"- Generated features: {list(df.columns)}")
                 
                 # Load model
                 self.model, self.scaler, self.selected_features = self.load_model_components()
                 
                 if self.model is None:
                     return None, None, None
+                
+                # Show model info
+                st.write("**🤖 Model Info:**")
+                st.write(f"- Expected features: {len(self.selected_features)}")
+                st.write(f"- Feature names: {self.selected_features}")
                 
                 # Validasi dan prediksi
                 if not self.validate_data(df, self.selected_features):
