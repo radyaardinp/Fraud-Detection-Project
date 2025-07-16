@@ -10,6 +10,52 @@ from preprocessing_pipeline import preprocess_for_prediction
 from normalize import normalize_data
 from predict_pipeline import activation_function
 
+# Aktivasi fungsi
+def activation_function(x, func_type='sigmoid'):
+    if func_type == 'sigmoid':
+        return 1 / (1 + np.exp(-x))
+    elif func_type == 'tanh':
+        return np.tanh(x)
+    elif func_type == 'relu':
+        return np.maximum(0, x)
+    else:
+        return x
+
+# Fungsi prediksi untuk model dict
+def elm_predict(X, model_dict):
+    input_weights = model_dict['input_weights']
+    biases = model_dict['biases']
+    output_weights = model_dict['output_weights']
+    activation_type = model_dict['activation_type']
+    threshold = model_dict['threshold']
+    
+    # Hidden layer
+    H = activation_function(np.dot(X, input_weights) + biases, func_type=activation_type)
+    # Output layer
+    y_pred_raw = np.dot(H, output_weights)
+    # Probabilitas fraud (gunakan sigmoid)
+    y_prob = 1 / (1 + np.exp(-y_pred_raw))
+    # Threshold untuk klasifikasi
+    y_pred = (y_prob >= threshold).astype(int)
+    
+    return y_pred, y_prob
+    
+def elm_predict_proba(X, model_dict):
+    input_weights = model_dict['input_weights']
+    biases = model_dict['biases']
+    output_weights = model_dict['output_weights']
+    activation_type = model_dict['activation_type']
+
+    # Hitung hidden layer
+    H = activation_function(np.dot(X, input_weights) + biases, func_type=activation_type)
+    y_raw = np.dot(H, output_weights)
+
+    # Konversi ke probabilitas
+    y_prob = 1 / (1 + np.exp(-y_raw))
+
+    # LIME butuh bentuk (n_samples, 2): [non-fraud, fraud]
+    return np.column_stack([1 - y_prob, y_prob])
+
 
 class FraudDetectionDashboard:
     def __init__(self):
@@ -147,35 +193,6 @@ class FraudDetectionDashboard:
             st.error(f"Prediction error: {str(e)}")
             st.error("Please check your preprocessing pipeline and ensure all required features are generated.")
             return None, None
-    # Aktivasi fungsi
-    def activation_function(x, func_type='sigmoid'):
-        if func_type == 'sigmoid':
-            return 1 / (1 + np.exp(-x))
-        elif func_type == 'tanh':
-            return np.tanh(x)
-        elif func_type == 'relu':
-            return np.maximum(0, x)
-        else:
-            return x
-
-    # Fungsi prediksi untuk model dict
-    def elm_predict_dashboard(X, model_dict):
-        input_weights = model_dict['input_weights']
-        biases = model_dict['biases']
-        output_weights = model_dict['output_weights']
-        activation_type = model_dict['activation_type']
-        threshold = model_dict['threshold']
-    
-        # Hidden layer
-        H = activation_function(np.dot(X, input_weights) + biases, func_type=activation_type)
-        # Output layer
-        y_pred_raw = np.dot(H, output_weights)
-        # Probabilitas fraud (gunakan sigmoid)
-        y_prob = 1 / (1 + np.exp(-y_pred_raw))
-        # Threshold untuk klasifikasi
-        y_pred = (y_prob >= threshold).astype(int)
-    
-        return y_pred, y_prob
 
     def create_compact_metrics(self, df):
         """Membuat metrics yang compact"""
@@ -260,7 +277,6 @@ class FraudDetectionDashboard:
         return None
     
     def create_lime_explanation(self, X_scaled, selected_features, model, idx_to_explain):
-        """Membuat penjelasan LIME yang compact"""
         try:
             explainer = LimeTabularExplainer(
                 training_data=X_scaled,
@@ -270,7 +286,7 @@ class FraudDetectionDashboard:
             )
             exp = explainer.explain_instance(
                 data_row=X_scaled[idx_to_explain],
-                predict_fn=lambda x: model.predict_proba(x)
+                predict_fn=lambda x: elm_predict_proba(x,model)
             )
             
             # Buat figure yang compact
