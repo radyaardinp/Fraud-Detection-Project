@@ -3,7 +3,7 @@ import joblib
 import pandas as pd
 from selected_features import FEATURES
 
-def load_scaler(path='scaler.pkl'):
+def load_scaler(path='scaler.joblib'):
     return joblib.load(path)
 
 def normalize_data(df, scaler=None):
