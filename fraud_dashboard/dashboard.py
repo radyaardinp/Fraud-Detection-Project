@@ -25,7 +25,7 @@ def load_data(file):
 @st.cache_resource
 def load_model_components():
     model = load("fraud_dashboard/hyperparameter_ELM.joblib")
-    scaler = load("fraud_dasboard/scaler.joblib")
+    scaler = load("fraud_dashboard/scaler.joblib")
     selected_features = load("fraud_dashboard/selected_features.joblib")
     return model, scaler, selected_features
 
