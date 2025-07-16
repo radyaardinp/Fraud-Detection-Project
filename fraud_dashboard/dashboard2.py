@@ -182,7 +182,7 @@ class FraudDetectionDashboard:
             
             # Perform scaling and prediction
             X_scaled = scaler.transform(X_input.values)
-            y_pred, y_prob = elm_predict_dashboard(X_scaled, model)
+            y_pred, y_prob = elm_predict(X_scaled, model)
             df['predicted_fraud'] = y_pred
             df['fraud_probability'] = y_prob
             
