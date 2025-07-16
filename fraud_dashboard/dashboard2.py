@@ -68,7 +68,6 @@ class FraudDetectionDashboard:
         </style>
         """, unsafe_allow_html=True)
         
-    @st.cache_data
     def load_data(self, file):
         """Load data dari file CSV yang diupload"""
         try:
