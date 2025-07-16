@@ -276,7 +276,7 @@ class FraudDetectionDashboard:
                 # Preprocessing
                 with st.spinner("Processing..."):
                     try:
-                        df = preprocess_for_prediction(raw_df)
+                        df = preprocess_for_prediction(raw_df, selected_features=self.selected_features)
                         
                         # Show preprocessing results
                         st.write("**📊 Preprocessing Results:**")
