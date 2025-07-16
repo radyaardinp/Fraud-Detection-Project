@@ -3,7 +3,7 @@ import joblib
 import pandas as pd
 
 #Load FEATURES
-FEATURES = joblib.load("selected_features.joblib")
+FEATURES = joblib.load("fraud_dashboard/selected_features.joblib")
 
 def load_scaler(path='scaler.joblib'):
     return joblib.load(path)
