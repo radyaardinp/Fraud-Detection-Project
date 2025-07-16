@@ -120,6 +120,11 @@ class FraudDetectionDashboard:
             X_input = df.loc[:, selected_features]
             st.write(f"- Input shape: {X_input.shape}")
             st.write(f"- Scaler expects: {scaler.n_features_in_} features")
+
+            # ✨ Tambahkan ini: penyesuaian urutan kolom
+            if list(X_input.columns) != selected_features:
+                st.warning("⚠️ Urutan fitur tidak sama, akan disesuaikan.")
+                X_input = X_input.reindex(columns=selected_features)
             
             # Check if shapes match
             if X_input.shape[1] != scaler.n_features_in_:
