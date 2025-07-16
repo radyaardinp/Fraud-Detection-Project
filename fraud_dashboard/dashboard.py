@@ -9,6 +9,7 @@ from lime.lime_tabular import LimeTabularExplainer
 from preprocessing_pipeline import preprocess_for_prediction
 from normalize import normalize_data
 from selected_features import FEATURES
+from predict_pipeline import activation_function
 
 
 st.set_page_config(page_title="Fraud Detection Dashboard", layout="wide")
