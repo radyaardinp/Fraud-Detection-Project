@@ -296,13 +296,14 @@ class FraudDetectionDashboard:
                 
             explainer = LimeTabularExplainer(
                 training_data=X_scaled,
-                feature_names=filtered_features,
+                feature_names=selected_features,
                 class_names=["Non-Fraud", "Fraud"],
-                mode="classification"
+                mode="classification", 
+                discretize_continuous=False
             )
             exp = explainer.explain_instance(
                 data_row=X_scaled[idx_to_explain],
-                predict_fn=lambda x: elm_predict_proba(x,model, filtered_features)
+                predict_fn=lambda x: elm_predict_proba(x,model)
             )
             
             # Buat figure yang compact
