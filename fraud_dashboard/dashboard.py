@@ -46,8 +46,11 @@ if uploaded_file:
         # Load model dan komponen
         model, scaler, selected_features = load_model_components()
 
-        if all(f in df.columns for f in selected_features):
-            X_input = df[selected_features]
+        missing = [f for f in selected_features if f not in df.columns]
+        if missing:
+            st.error(f"❌ Data tidak memiliki kolom-kolom berikut yang dibutuhkan untuk prediksi: {missing}")
+        else:
+            X_input = df.loc[:, selected_features]
             X_scaled = scaler.transform(X_input)
             y_pred = model.predict(X_scaled)
 
