@@ -278,15 +278,31 @@ class FraudDetectionDashboard:
     
     def create_lime_explanation(self, X_scaled, selected_features, model, idx_to_explain):
         try:
+            # 1. Check NaN & inf
+            if np.any(np.isnan(X_scaled)) or np.any(np.isinf(X_scaled)):
+                st.error("❌ X_scaled contains NaN or infinite values. Cannot generate LIME explanation.")
+                return None
+
+            # 2. Remove constant columns
+            variance = X_scaled.var(axis=0)
+            non_constant_idx = variance > 0
+            X_scaled_filtered = X_scaled[:, non_constant_idx]
+            filtered_features = [f for i, f in enumerate(selected_features) if non_constant_idx[i]]
+
+            # 3. Check if after filtering there are still features
+            if X_scaled_filtered.shape[1] == 0:
+                st.error("❌ No features with variance > 0 for LIME.")
+                return None
+                
             explainer = LimeTabularExplainer(
                 training_data=X_scaled,
-                feature_names=selected_features,
+                feature_names=filtered_features,
                 class_names=["Non-Fraud", "Fraud"],
                 mode="classification"
             )
             exp = explainer.explain_instance(
                 data_row=X_scaled[idx_to_explain],
-                predict_fn=lambda x: elm_predict_proba(x,model)
+                predict_fn=lambda x: elm_predict_proba(x,model, filtered_features)
             )
             
             # Buat figure yang compact
