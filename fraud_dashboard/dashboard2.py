@@ -322,8 +322,6 @@ class FraudDetectionDashboard:
                 # Preprocessing
                 with st.spinner("Processing..."):
                     try:
-                        df = preprocess_for_prediction(raw_df)
-                        
                         # Show preprocessing results
                         st.write("**📊 Preprocessing Results:**")
                         st.write(f"- Original shape: {raw_df.shape}")
@@ -331,6 +329,8 @@ class FraudDetectionDashboard:
                         
                         # Load model
                         self.model, self.scaler, self.selected_features = self.load_model_components()
+
+                        df = preprocess_for_prediction(raw_df, selected_features=self.selected_features)
                         
                         if self.model is None:
                             st.error("Failed to load model components")
