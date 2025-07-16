@@ -16,7 +16,7 @@ def get_elm_predict_proba(model_dict):
         return np.column_stack([1 - probs, probs])
     return predict
 
-def explain_instance(instance_scaled_row, training_data_scaled, model_path='hyperparameter_ELM.pkl', num_features=5):
+def explain_instance(instance_scaled_row, training_data_scaled, model_path='hyperparameter_ELM.joblib', num_features=5):
     """
     Buat penjelasan LIME untuk satu instance scaled.
     
@@ -46,4 +46,4 @@ def explain_instance(instance_scaled_row, training_data_scaled, model_path='hype
         elm_predict_proba,
         num_features=num_features
     )
-    return exp
+    return exp, elm_predict_proba(np.array([instance_scaled_row]))[0]
