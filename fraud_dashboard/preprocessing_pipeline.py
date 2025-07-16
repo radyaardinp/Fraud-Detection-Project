@@ -1,322 +1,256 @@
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import LabelEncoder
-import warnings
-warnings.filterwarnings('ignore')
 
 
-class FraudDetectionPreprocessor:
-    def __init__(self, config=None):
-        """
-        Initialize preprocessor with configurable parameters
-        """
-        self.config = config or {
-            'quantile_threshold': 0.95,
-            'mismatch_ratio_threshold': 0.01,
-            'high_fail_ratio_threshold': 0.7,
-            'low_fail_ratio_threshold': 0.4,
-            'quick_fail_interval': 60,
-            'extreme_mismatch_ratio': 1.0,
-            'high_failed_multiplier': 2
-        }
-        self.label_encoders = {}
-        
-    def clean_data(self, df):
-        """Clean and prepare basic data types"""
-        df = df.copy()  # Prevent SettingWithCopyWarning
-        
-        # Drop unnecessary columns
-        columns_to_drop = ['id', 'inquiryId', 'networkReferenceId']
-        df = df.drop(columns=columns_to_drop, errors='ignore')
-        
-        # Handle missing values
-        numeric_fill_cols = ['settlementAmount', 'feeAmount', 'discountAmount']
-        for col in numeric_fill_cols:
-            if col in df.columns:
-                df[col] = df[col].fillna(0)
-        
-        # Convert datetime columns
-        datetime_cols = ['updatedTime', 'createdTime']
-        for col in datetime_cols:
-            if col in df.columns:
-                df[col] = pd.to_datetime(df[col], errors='coerce')
-        
-        # Convert numeric columns
-        float_cols = ['amount', 'settlementAmount', 'feeAmount', 'discountAmount', 'inquiryAmount']
-        for col in float_cols:
-            if col in df.columns:
-                df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
-        
-        # Convert categorical columns
-        categorical_cols = ['merchantId', 'paymentSource', 'status', 'statusCode', 'currency', 'type', 'Type Token']
-        for col in categorical_cols:
-            if col in df.columns:
-                df[col] = df[col].astype('category')
-        
-        return df
+def clean_data(df):
+    """Clean and prepare basic data types"""
+    columns_to_drop = ['id', 'inquiryId', 'networkReferenceId']
+    df = df.drop(columns=columns_to_drop, errors='ignore')
     
-    def generate_label_features(self, df):
-        """Generate fraud detection features and labels"""
-        df = df.copy()
-        
-        # Create base features
-        df['createdDate'] = df['createdTime'].dt.date
-        df['is_declined'] = df['status'].str.lower() == 'declined'
-        
-        # Calculate daily frequency and failures
-        daily_stats = df.groupby(['merchantId', 'createdDate']).agg({
-            'is_declined': ['sum', 'count']
-        }).reset_index()
-        
-        daily_stats.columns = ['merchantId', 'createdDate', 'failed_count', 'daily_freq']
-        df = df.merge(daily_stats, on=['merchantId', 'createdDate'])
-        
-        # Calculate merchant averages
-        merchant_avg = daily_stats.groupby('merchantId')['failed_count'].mean().reset_index(name='avg_failed')
-        df = df.merge(merchant_avg, on='merchantId', how='left')
-        
-        # Calculate ratios and additional features
-        df['fail_ratio'] = df['failed_count'] / np.maximum(df['daily_freq'], 1)
-        df['is_nominal_tinggi'] = df['amount'] > 8_000_000
-        df['mismatch'] = abs(df['inquiryAmount'] - df['settlementAmount'])
-        df['mismatch_ratio'] = np.where(
-            df['inquiryAmount'] == 0, 0,
-            abs(df['settlementAmount'] - df['inquiryAmount']) / df['inquiryAmount']
-        )
-        
-        # Calculate failure intervals
-        df = self._calculate_failure_intervals(df)
-        
-        # Generate fraud labels
-        df = self._generate_fraud_labels(df)
-        
-        # Clean up temporary columns
-        temp_cols = ['createdDate', 'daily_freq', 'is_declined', 'failed_count', 
-                    'is_nominal_tinggi', 'mismatch', 'avg_failed', 'fail_ratio', 
-                    'avg_fail_interval', 'mismatch_ratio', 'label1', 'label2', 'label3']
-        df = df.drop(columns=temp_cols, errors='ignore')
-        
-        return df
-    
-    def _calculate_failure_intervals(self, df):
-        """Calculate average failure intervals for merchants"""
-        failed_trx = df[df['is_declined']].copy()
-        if len(failed_trx) == 0:
-            df['avg_fail_interval'] = 0
-            return df
-            
+    # Handle missing values more safely
+    df = df.copy()  # Prevent SettingWithCopyWarning
+    df['settlementAmount'] = df['settlementAmount'].fillna(0)
+    df['feeAmount'] = df['feeAmount'].fillna(0)
+    df['discountAmount'] = df['discountAmount'].fillna(0) if 'discountAmount' in df.columns else 0
+
+    # Convert datetime with better error handling
+    df['updatedTime'] = pd.to_datetime(df['updatedTime'], errors='coerce')
+    df['createdTime'] = pd.to_datetime(df['createdTime'], errors='coerce')
+
+    # Convert numeric columns safely
+    float_cols = ['amount', 'settlementAmount', 'feeAmount', 'discountAmount', 'inquiryAmount']
+    for col in float_cols:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
+
+    # Convert categorical columns
+    categorical_cols = ['merchantId', 'paymentSource', 'status', 'statusCode']
+    for col in categorical_cols:
+        if col in df.columns:
+            df[col] = df[col].astype('category')
+
+    return df
+
+
+def generate_label_features(df):
+    """Generate fraud detection features and labels"""
+    df = df.copy()
+    df['createdDate'] = pd.to_datetime(df['createdTime']).dt.date
+    df['is_declined'] = df['status'].str.lower() == 'declined'
+
+    # Daily frequency calculation
+    frekuensi_harian = df.groupby(['merchantId', 'createdDate']).size().reset_index(name='daily_freq')
+    df = df.merge(frekuensi_harian, on=['merchantId', 'createdDate'])
+
+    # Failed transactions per day
+    failed_per_day = df.groupby(['merchantId', 'createdDate'])['is_declined'].sum().reset_index(name='failed_count')
+    df = df.merge(failed_per_day, on=['merchantId', 'createdDate'])
+
+    # Additional features
+    df['is_nominal_tinggi'] = df['amount'] > 8_000_000
+    df['mismatch'] = abs(df['inquiryAmount'] - df['settlementAmount'])
+
+    # Average failed per merchant
+    avg_failed_per_merchant = failed_per_day.groupby('merchantId')['failed_count'].mean().reset_index(name='avg_failed')
+    df = df.merge(avg_failed_per_merchant, on='merchantId', how='left')
+    df['avg_failed'] = df['avg_failed'].fillna(0)
+
+    # Failure ratio
+    df['fail_ratio'] = df['failed_count'] / np.maximum(df['daily_freq'], 1)
+
+    # Calculate failure intervals
+    failed_trx = df[df['is_declined']].copy()
+    if len(failed_trx) > 0:
         failed_trx = failed_trx.sort_values(by=['merchantId', 'createdTime'])
         failed_trx['prev_failed_time'] = failed_trx.groupby('merchantId')['createdTime'].shift(1)
-        failed_trx['failed_time_diff'] = (
-            failed_trx['createdTime'] - failed_trx['prev_failed_time']
-        ).dt.total_seconds()
-        
-        failed_diff_daily = failed_trx.groupby(['merchantId', 'createdDate']).agg({
-            'failed_time_diff': 'mean'
-        }).reset_index()
-        failed_diff_daily.columns = ['merchantId', 'createdDate', 'avg_fail_interval']
-        
-        # Count failed transactions per day
+        failed_trx['failed_time_diff'] = (failed_trx['createdTime'] - failed_trx['prev_failed_time']).dt.total_seconds()
+        failed_trx['createdDate'] = failed_trx['createdTime'].dt.date
+
+        failed_diff_daily = failed_trx.groupby(['merchantId', 'createdDate'])['failed_time_diff'].mean().reset_index(name='avg_fail_interval')
         failed_count_per_day = failed_trx.groupby(['merchantId', 'createdDate']).size().reset_index(name='count_failed')
         failed_diff_daily = failed_diff_daily.merge(failed_count_per_day, on=['merchantId', 'createdDate'])
-        
-        # Set interval to 0 if less than 2 failures
         failed_diff_daily['avg_fail_interval'] = np.where(
-            failed_diff_daily['count_failed'] < 2, 0, failed_diff_daily['avg_fail_interval']
+            failed_diff_daily['count_failed'] < 2,
+            0,
+            failed_diff_daily['avg_fail_interval']
         )
-        
-        df = df.merge(
-            failed_diff_daily[['merchantId', 'createdDate', 'avg_fail_interval']], 
-            on=['merchantId', 'createdDate'], how='left'
-        )
-        df['avg_fail_interval'] = df['avg_fail_interval'].fillna(0)
-        
-        return df
+        df = df.merge(failed_diff_daily[['merchantId', 'createdDate', 'avg_fail_interval']], on=['merchantId', 'createdDate'], how='left')
     
-    def _generate_fraud_labels(self, df):
-        """Generate fraud detection labels using multiple strategies"""
-        # Calculate thresholds
-        thresholds = {
-            'daily_freq': df['daily_freq'].quantile(self.config['quantile_threshold']),
-            'amount': df['amount'].quantile(self.config['quantile_threshold']),
-            'failed_count': df['failed_count'].quantile(self.config['quantile_threshold']),
-            'mismatch': df['mismatch'].quantile(self.config['quantile_threshold'])
-        }
-        
-        # Strategy 1: Volume and amount based detection
-        df['label1'] = df.apply(lambda row: self._detect_anomaly1(row, thresholds), axis=1)
-        
-        # Strategy 2: Failure pattern based detection
-        df['label2'] = df.apply(lambda row: self._detect_anomaly2(row), axis=1)
-        
-        # Strategy 3: Mismatch ratio based detection
-        df['label3'] = df.apply(lambda row: self._detect_anomaly3(row), axis=1)
-        
-        # Combined strategy
-        df['fraud'] = df.apply(lambda row: self._detect_combined_anomaly(row), axis=1)
-        
-        return df
-    
-    def _detect_anomaly1(self, row, thresholds):
-        """Volume and amount based fraud detection"""
+    df['avg_fail_interval'] = df['avg_fail_interval'].fillna(0)
+
+    # Mismatch ratio
+    df['mismatch_ratio'] = np.where(
+        df['inquiryAmount'] == 0,
+        0,
+        abs(df['settlementAmount'] - df['inquiryAmount']) / df['inquiryAmount']
+    )
+
+    # Calculate thresholds
+    thresholds = {
+        'daily_freq': df['daily_freq'].quantile(0.95),
+        'amount': df['amount'].quantile(0.95),
+        'failed_count': df['failed_count'].quantile(0.95),
+        'mismatch': df['mismatch'].quantile(0.95)
+    }
+
+    def detect_anomaly1(row):
         if row['daily_freq'] > thresholds['daily_freq']:
             if row['amount'] > thresholds['amount']:
                 if row['failed_count'] > thresholds['failed_count']:
-                    return 'Fraud'
+                    if row['mismatch'] > thresholds['mismatch']:
+                        return 'Fraud'
+                    else:
+                        return 'Fraud'
                 else:
                     if row['mismatch'] > thresholds['mismatch']:
-                        if (row['mismatch_ratio'] < self.config['mismatch_ratio_threshold'] and 
-                            row['failed_count'] == 0):
+                        if row['mismatch_ratio'] < 0.01 and row['failed_count'] == 0:
                             return 'Not Fraud'
                         else:
                             return 'Fraud'
                     else:
                         return 'Not Fraud'
             else:
-                if (row['failed_count'] > thresholds['failed_count'] and 
-                    row['mismatch'] > thresholds['mismatch']):
+                if row['failed_count'] > thresholds['failed_count'] and row['mismatch'] > thresholds['mismatch']:
                     return 'Fraud'
                 else:
                     return 'Not Fraud'
         else:
             if row['amount'] > thresholds['amount']:
-                if (row['failed_count'] > thresholds['failed_count'] or 
-                    row['mismatch'] > thresholds['mismatch']):
+                if row['failed_count'] > thresholds['failed_count'] or row['mismatch'] > thresholds['mismatch']:
                     return 'Fraud'
                 else:
                     return 'Not Fraud'
             else:
                 return 'Not Fraud'
-    
-    def _detect_anomaly2(self, row):
-        """Failure pattern based fraud detection"""
-        if row['failed_count'] > self.config['high_failed_multiplier'] * row['avg_failed']:
-            if row['fail_ratio'] > self.config['high_fail_ratio_threshold']:
-                return 'Fraud'
+
+    def detect_anomaly2(row):
+        if row['failed_count'] > 2 * row['avg_failed']:
+            if row['fail_ratio'] > 0.7:
+                if row['avg_fail_interval'] < 60:
+                    return 'Fraud'
+                else:
+                    return 'Fraud'
             else:
-                if row['avg_fail_interval'] < self.config['quick_fail_interval']:
+                if row['avg_fail_interval'] < 60:
                     return 'Fraud'
                 else:
                     return 'Not Fraud'
         else:
-            if row['fail_ratio'] > self.config['low_fail_ratio_threshold']:
+            if row['fail_ratio'] > 0.4:
                 return 'Fraud'
             else:
                 return 'Not Fraud'
-    
-    def _detect_anomaly3(self, row):
-        """Mismatch ratio based fraud detection"""
-        return 'Fraud' if row['mismatch_ratio'] > self.config['extreme_mismatch_ratio'] else 'Not Fraud'
-    
-    def _detect_combined_anomaly(self, row):
-        """Combined fraud detection strategy"""
-        results = [row['label1'], row['label2'], row['label3']]
+
+    def detect_anomaly3(row):
+        return 'Fraud' if row['mismatch_ratio'] > 1.0 else 'Not Fraud'
+
+    def detect_combined_anomaly(row):
+        results = [
+            detect_anomaly1(row),
+            detect_anomaly2(row),
+            detect_anomaly3(row)
+        ]
         return 'Fraud' if 'Fraud' in results else 'Not Fraud'
+
+    # Apply detection functions
+    df['label1'] = df.apply(detect_anomaly1, axis=1)
+    df['label2'] = df.apply(detect_anomaly2, axis=1)
+    df['label3'] = df.apply(detect_anomaly3, axis=1)
+    df['fraud'] = df.apply(detect_combined_anomaly, axis=1)
+
+    # Drop temporary columns
+    columns_to_drop = ['createdDate', 'daily_freq', 'is_declined', 'failed_count', 'is_nominal_tinggi', 'mismatch',
+                       'avg_failed', 'fail_ratio', 'avg_fail_interval', 'mismatch_ratio', 'label1', 'label2', 'label3']
+    df = df.drop(columns=columns_to_drop, errors='ignore')
+
+    return df
+
+
+def feature_engineering(df):
+    """Create additional engineered features"""
+    df = df.copy()
+    epsilon = 1e-6
     
-    def feature_engineering(self, df):
-        """Create additional engineered features"""
-        df = df.copy()
-        
-        epsilon = 1e-6
-        df['discount_ratio'] = df['discountAmount'] / (df['amount'] + epsilon)
-        df['fee_ratio'] = df['feeAmount'] / (df['amount'] + epsilon)
+    # Ensure required columns exist
+    if 'discountAmount' not in df.columns:
+        df['discountAmount'] = 0
+    if 'feeAmount' not in df.columns:
+        df['feeAmount'] = 0
+    
+    df['discount_ratio'] = df['discountAmount'] / (df['amount'] + epsilon)
+    df['fee_ratio'] = df['feeAmount'] / (df['amount'] + epsilon)
+    
+    # Check if datetime columns exist
+    if 'updatedTime' in df.columns and 'createdTime' in df.columns:
         df['selisih_waktu (sec)'] = (df['updatedTime'] - df['createdTime']).dt.total_seconds()
-        
-        # Time-based features
+    else:
+        df['selisih_waktu (sec)'] = 0
+    
+    if 'createdTime' in df.columns:
         df['hour_of_day'] = df['createdTime'].dt.hour
-        df['day_of_week'] = df['createdTime'].dt.dayofweek
-        df['is_weekend'] = df['day_of_week'].isin([5, 6]).astype(int)
-        
-        # Cyclical encoding for time features
         df['hour_sin'] = np.sin(2 * np.pi * df['hour_of_day'] / 24)
         df['hour_cos'] = np.cos(2 * np.pi * df['hour_of_day'] / 24)
-        df['day_sin'] = np.sin(2 * np.pi * df['day_of_week'] / 7)
-        df['day_cos'] = np.cos(2 * np.pi * df['day_of_week'] / 7)
-        
-        # Clean up temporary columns
-        df = df.drop(columns=['hour_of_day', 'day_of_week', 'createdTime', 'updatedTime'], 
-                    errors='ignore')
-        
-        return df
+        df = df.drop(columns=['hour_of_day'], errors='ignore')
+    else:
+        df['hour_sin'] = 0
+        df['hour_cos'] = 0
     
-    def encode_categoricals(self, df):
-        """Encode categorical variables with proper handling"""
-        df = df.copy()
-        
-        cat_cols = ['merchantId', 'paymentSource', 'status', 'statusCode', 'currency', 'type', 'Type Token']
-        
-        for col in cat_cols:
-            if col in df.columns:
-                # Handle missing values
-                df[col] = df[col].fillna('unknown')
-                
-                # Use existing encoder or create new one
-                if col not in self.label_encoders:
-                    self.label_encoders[col] = LabelEncoder()
-                    df[col] = self.label_encoders[col].fit_transform(df[col].astype(str))
-                else:
-                    # Handle unseen categories
-                    unique_values = set(df[col].astype(str).unique())
-                    known_values = set(self.label_encoders[col].classes_)
-                    
-                    if not unique_values.issubset(known_values):
-                        # Add new categories to encoder
-                        new_classes = list(known_values.union(unique_values))
-                        self.label_encoders[col].classes_ = np.array(new_classes)
-                    
-                    df[col] = self.label_encoders[col].transform(df[col].astype(str))
-        
-        return df
-    
-    def preprocess_for_prediction(self, df):
-        """Main preprocessing pipeline"""
-        df = self.clean_data(df)
-        df = self.generate_label_features(df)
-        df = self.feature_engineering(df)
-        df = self.encode_categoricals(df)
-        
-        return df
-    
-    def get_feature_names(self, df):
-        """Get list of feature names after preprocessing"""
-        return list(df.columns)
-    
-    def save_encoders(self, filepath):
-        """Save label encoders for later use"""
-        import pickle
-        with open(filepath, 'wb') as f:
-            pickle.dump(self.label_encoders, f)
-    
-    def load_encoders(self, filepath):
-        """Load previously saved label encoders"""
-        import pickle
-        with open(filepath, 'rb') as f:
-            self.label_encoders = pickle.load(f)
+    # Drop datetime columns
+    df = df.drop(columns=['createdTime', 'updatedTime'], errors='ignore')
+    return df
 
 
-# Usage example
-def main():
-    # Initialize preprocessor with custom config
-    config = {
-        'quantile_threshold': 0.95,
-        'mismatch_ratio_threshold': 0.01,
-        'high_fail_ratio_threshold': 0.7,
-        'low_fail_ratio_threshold': 0.4,
-        'quick_fail_interval': 60,
-        'extreme_mismatch_ratio': 1.0,
-        'high_failed_multiplier': 2
-    }
+def encode_categoricals(df):
+    """Encode categorical variables"""
+    df = df.copy()
+    cat_cols = ['merchantId', 'paymentSource', 'status', 'statusCode']
     
-    preprocessor = FraudDetectionPreprocessor(config)
+    # Add other categorical columns if they exist
+    potential_cat_cols = ['currency', 'type', 'Type Token']
+    for col in potential_cat_cols:
+        if col in df.columns:
+            cat_cols.append(col)
     
-    # Load and preprocess data
-    # df = pd.read_csv('your_data.csv')
-    # processed_df = preprocessor.preprocess_for_prediction(df)
+    for col in cat_cols:
+        if col in df.columns:
+            le = LabelEncoder()
+            # Handle missing values
+            df[col] = df[col].fillna('unknown')
+            df[col] = le.fit_transform(df[col].astype(str))
     
-    # Save encoders for later use
-    # preprocessor.save_encoders('label_encoders.pkl')
-    
-    print("Preprocessing pipeline ready!")
+    return df
 
-if __name__ == "__main__":
-    main()
+
+def preprocess_for_prediction(df):
+    """Main preprocessing pipeline function"""
+    try:
+        print("Starting preprocessing...")
+        
+        # Validate input
+        if df is None or df.empty:
+            raise ValueError("Input DataFrame is empty or None")
+        
+        print(f"Input shape: {df.shape}")
+        
+        # Apply preprocessing steps
+        df = clean_data(df)
+        print("✓ Data cleaning completed")
+        
+        df = generate_label_features(df)
+        print("✓ Label features generated")
+        
+        df = feature_engineering(df)
+        print("✓ Feature engineering completed")
+        
+        df = encode_categoricals(df)
+        print("✓ Categorical encoding completed")
+        
+        print(f"Final shape: {df.shape}")
+        print("Preprocessing completed successfully!")
+        
+        return df
+        
+    except Exception as e:
+        print(f"Error during preprocessing: {str(e)}")
+        raise
