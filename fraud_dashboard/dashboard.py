@@ -73,9 +73,6 @@ if uploaded_file:
             st.write(f"🧠 Penjelasan Transaksi ke-{idx_to_explain}:")
             st.pyplot(exp.as_pyplot_figure())
 
-        else:
-            st.error("❌ Data tidak memiliki semua fitur yang dibutuhkan untuk prediksi.")
-
     with col_output:
         st.subheader("📊 Ringkasan & Visualisasi")
         total_transaksi = len(df)
