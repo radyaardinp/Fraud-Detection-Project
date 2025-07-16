@@ -136,8 +136,9 @@ class FraudDetectionDashboard:
             
             # Perform scaling and prediction
             X_scaled = scaler.transform(X_input.values)
-            y_pred = model.predict(X_scaled)
+            y_pred, y_prob = elm_predict_dashboard(X_scaled, model)
             df['predicted_fraud'] = y_pred
+            df['fraud_probability'] = y_prob
             
             st.success(f"✅ Prediction successful! Shape: {X_scaled.shape}")
             return df, X_scaled
@@ -146,7 +147,36 @@ class FraudDetectionDashboard:
             st.error(f"Prediction error: {str(e)}")
             st.error("Please check your preprocessing pipeline and ensure all required features are generated.")
             return None, None
+    # Aktivasi fungsi
+    def activation_function(x, func_type='sigmoid'):
+        if func_type == 'sigmoid':
+            return 1 / (1 + np.exp(-x))
+        elif func_type == 'tanh':
+            return np.tanh(x)
+        elif func_type == 'relu':
+            return np.maximum(0, x)
+        else:
+            return x
+
+    # Fungsi prediksi untuk model dict
+    def elm_predict_dashboard(X, model_dict):
+        input_weights = model_dict['input_weights']
+        biases = model_dict['biases']
+        output_weights = model_dict['output_weights']
+        activation_type = model_dict['activation_type']
+        threshold = model_dict['threshold']
     
+        # Hidden layer
+        H = activation_function(np.dot(X, input_weights) + biases, func_type=activation_type)
+        # Output layer
+        y_pred_raw = np.dot(H, output_weights)
+        # Probabilitas fraud (gunakan sigmoid)
+        y_prob = 1 / (1 + np.exp(-y_pred_raw))
+        # Threshold untuk klasifikasi
+        y_pred = (y_prob >= threshold).astype(int)
+    
+        return y_pred, y_prob
+
     def create_compact_metrics(self, df):
         """Membuat metrics yang compact"""
         total_transaksi = len(df)
