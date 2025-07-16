@@ -224,7 +224,7 @@ def encode_categoricals(df):
     return df
 
 
-def preprocess_for_prediction(df):
+def preprocess_for_prediction(df, selected_features=None):
     """Main preprocessing pipeline function"""
     try:
         print("Starting preprocessing...")
@@ -253,6 +253,9 @@ def preprocess_for_prediction(df):
 
         # ✨ Batasi ke selected_features jika diberikan
         if selected_features is not None:
+            missing = [f for f in selected_features if f not in df.columns]
+            if missing:
+                print(f"⚠️ Warning: Missing columns will be filled with 0 → {missing}")
             df = df.reindex(columns=selected_features, fill_value=0)
         return df
         
