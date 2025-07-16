@@ -51,7 +51,7 @@ if uploaded_file:
             st.error(f"❌ Data tidak memiliki kolom-kolom berikut yang dibutuhkan untuk prediksi: {missing}")
         else:
             X_input = df.loc[:, selected_features]
-            X_scaled = scaler.transform(X_input)
+            X_scaled = scaler.transform(X_input.to_numpy())
             y_pred = model.predict(X_scaled)
 
             df['predicted_fraud'] = y_pred
