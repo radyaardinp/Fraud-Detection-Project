@@ -93,6 +93,7 @@ class FraudDetectionDashboard:
         missing = [f for f in selected_features if f not in df.columns]
         if missing:
             st.error(f"❌ Missing columns: {', '.join(missing)}")
+            st.error("Please ensure your preprocessing pipeline generates all required features.")
             return False
         return True
     
@@ -254,10 +255,11 @@ class FraudDetectionDashboard:
             # File uploader
             uploaded_file = st.file_uploader("Upload CSV", type=["csv"], key="file_upload")
             
-            if uploaded_file:
+            if uploaded_file is not None:
                 # Load data
                 raw_df = self.load_data(uploaded_file)
                 if raw_df is None:
+                    st.error("Failed to load data")
                     return None, None, None
                 
                 st.success(f"✅ Data loaded: {len(raw_df)} rows")
@@ -268,51 +270,61 @@ class FraudDetectionDashboard:
                 
                 # Preprocessing
                 with st.spinner("Processing..."):
-                    df = preprocess_for_prediction(raw_df)
-                    
-                    # Show preprocessing results
-                    st.write("**📊 Preprocessing Results:**")
-                    st.write(f"- Original shape: {raw_df.shape}")
-                    st.write(f"- Processed shape: {df.shape}")
-                    st.write(f"- Generated features: {list(df.columns)}")
-                
-                # Load model
-                self.model, self.scaler, self.selected_features = self.load_model_components()
-                
-                if self.model is None:
-                    return None, None, None
-                
-                # Show model info
-                st.write("**🤖 Model Info:**")
-                st.write(f"- Expected features: {len(self.selected_features)}")
-                st.write(f"- Feature names: {self.selected_features}")
-                
-                # Validasi dan prediksi
-                if not self.validate_data(df, self.selected_features):
-                    return None, None, None
-                
-                df, X_scaled = self.perform_prediction(df, self.model, self.scaler, self.selected_features)
-                
-                if df is None:
-                    return None, None, None
-                
-                # Status prediksi
-                total_fraud = df['predicted_fraud'].sum()
-                st.info(f"🔍 Detected {total_fraud} fraud transactions")
-                
-                # LIME explanation controls
-                st.markdown("### 🧠 AI Explanation")
-                if len(df) > 0:
-                    idx_to_explain = st.selectbox(
-                        "Select transaction:", 
-                        range(min(20, len(df))), 
-                        format_func=lambda x: f"Transaction {x}"
-                    )
-                    
-                    if st.button("🔍 Explain", use_container_width=True):
-                        return df, X_scaled, idx_to_explain
-                
-                return df, X_scaled, None
+                    try:
+                        df = preprocess_for_prediction(raw_df)
+                        
+                        # Show preprocessing results
+                        st.write("**📊 Preprocessing Results:**")
+                        st.write(f"- Original shape: {raw_df.shape}")
+                        st.write(f"- Processed shape: {df.shape}")
+                        
+                        # Load model
+                        self.model, self.scaler, self.selected_features = self.load_model_components()
+                        
+                        if self.model is None:
+                            st.error("Failed to load model components")
+                            return None, None, None
+                        
+                        # Show model info
+                        st.write("**🤖 Model Info:**")
+                        st.write(f"- Expected features: {len(self.selected_features)}")
+                        
+                        # Validasi dan prediksi
+                        if not self.validate_data(df, self.selected_features):
+                            st.error("Data validation failed")
+                            return None, None, None
+                        
+                        # Perform prediction
+                        df_with_pred, X_scaled = self.perform_prediction(df, self.model, self.scaler, self.selected_features)
+                        
+                        if df_with_pred is None:
+                            st.error("Prediction failed")
+                            return None, None, None
+                        
+                        # Status prediksi
+                        total_fraud = df_with_pred['predicted_fraud'].sum()
+                        st.success(f"🔍 Detected {total_fraud} fraud transactions")
+                        
+                        # LIME explanation controls
+                        st.markdown("### 🧠 AI Explanation")
+                        idx_to_explain = None
+                        if len(df_with_pred) > 0:
+                            idx_to_explain = st.selectbox(
+                                "Select transaction:", 
+                                range(min(20, len(df_with_pred))), 
+                                format_func=lambda x: f"Transaction {x}"
+                            )
+                            
+                            if st.button("🔍 Explain", use_container_width=True):
+                                st.session_state.show_lime = True
+                                st.session_state.lime_idx = idx_to_explain
+                        
+                        # Return data for main content
+                        return df_with_pred, X_scaled, idx_to_explain
+                        
+                    except Exception as e:
+                        st.error(f"Processing error: {str(e)}")
+                        return None, None, None
             
             else:
                 st.info("⬆️ Please upload a CSV file")
@@ -387,18 +399,25 @@ class FraudDetectionDashboard:
                 st.success("🎉 No fraud transactions detected!")
             
             # LIME explanation
-            if idx_to_explain is not None:
+            if hasattr(st.session_state, 'show_lime') and st.session_state.show_lime:
                 st.markdown("**🧠 AI Explanation**")
                 with st.spinner("Generating explanation..."):
                     lime_fig = self.create_lime_explanation(
-                        X_scaled, self.selected_features, self.model, idx_to_explain
+                        X_scaled, self.selected_features, self.model, 
+                        st.session_state.lime_idx
                     )
                     if lime_fig:
                         st.pyplot(lime_fig, use_container_width=True)
                         plt.close(lime_fig)
+                    # Reset LIME state
+                    st.session_state.show_lime = False
     
     def run_dashboard(self):
         """Fungsi utama untuk menjalankan dashboard"""
+        # Initialize session state
+        if 'show_lime' not in st.session_state:
+            st.session_state.show_lime = False
+            
         # Header
         st.markdown("# 🛡️ Fraud Detection Dashboard")
         st.markdown("Deteksi fraud otomatis menggunakan model ELM")
