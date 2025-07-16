@@ -250,7 +250,10 @@ def preprocess_for_prediction(df):
         
         print(f"Final shape: {df.shape}")
         print("Preprocessing completed successfully!")
-        
+
+        # ✨ Batasi ke selected_features jika diberikan
+        if selected_features is not None:
+            df = df.reindex(columns=selected_features, fill_value=0)
         return df
         
     except Exception as e:
