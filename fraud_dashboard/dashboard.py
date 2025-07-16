@@ -8,7 +8,6 @@ from joblib import load
 from lime.lime_tabular import LimeTabularExplainer
 from preprocessing_pipeline import preprocess_for_prediction
 from normalize import normalize_data
-from selected_features import FEATURES
 from predict_pipeline import activation_function
 
 
