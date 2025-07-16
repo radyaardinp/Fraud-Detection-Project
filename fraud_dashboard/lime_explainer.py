@@ -3,7 +3,6 @@ import numpy as np
 import joblib
 from lime.lime_tabular import LimeTabularExplainer
 from predict_pipeline import activation_function
-from selected_features import FEATURES
 
 def get_elm_predict_proba(model_dict):
     def predict(X):
@@ -30,8 +29,9 @@ def explain_instance(instance_scaled_row, training_data_scaled, model_path='hype
     - exp: objek LIME explanation
     """
     model = joblib.load(model_path)
+    FEATURES = joblib.load("selected_features.joblib")
     elm_predict_proba = get_elm_predict_proba(model)
-
+    
     explainer = LimeTabularExplainer(
         training_data=training_data_scaled,
         mode="classification",
