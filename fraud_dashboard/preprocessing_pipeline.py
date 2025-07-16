@@ -216,6 +216,8 @@ def encode_categoricals(df):
         if col in df.columns:
             le = LabelEncoder()
             # Handle missing values
+            df[col] = df[col].astype(str)
+            df[col] = df[col].replace('nan', 'unknown')
             df[col] = df[col].fillna('unknown')
             df[col] = le.fit_transform(df[col].astype(str))
     
