@@ -166,8 +166,8 @@ if uploaded_file is not None:
             st.info(f"**Rows:** {len(df):,}")
             st.info(f"**Columns:** {df.shape[1]}")
         with col2:
-            st.metric(f"**File Size**", f"{uploaded_file.size / (1024*1024):.2f} MB")
-            st.metric(f"**File Type**", uploaded_file.type)
+            st.info(f"**File Size:**, f"{uploaded_file.size / (1024*1024):.2f} MB")
+            st.info(f"**File Type:**, uploaded_file.type)
 
         # Show sample of uploaded data
         st.markdown("### 📋 Data Preview")
