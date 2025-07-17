@@ -334,7 +334,7 @@ class FraudDetectionDashboard:
         """Membuat pie chart"""
         fraud_counts = df['predicted_fraud'].value_counts().rename({0: 'Non-Fraud', 1: 'Fraud'})
         
-        fig, ax = plt.subplots(figsize=(6, 4))
+        fig, ax = plt.subplots(figsize=(4, 3))
         colors = ['#28a745', '#dc3545']
         wedges, texts, autotexts = ax.pie(fraud_counts, labels=fraud_counts.index, 
                                          autopct='%1.1f%%', colors=colors, startangle=90)
@@ -343,49 +343,50 @@ class FraudDetectionDashboard:
             autotext.set_color('white')
             autotext.set_fontweight('bold')
         
-        ax.set_title('Distribusi Fraud vs Non-Fraud', fontsize=14, fontweight='bold')
+        ax.set_title('Distribusi Fraud vs Non-Fraud', fontsize=12, fontweight='bold')
         plt.tight_layout()
         return fig
     
-    def create_hourly_chart(self, df):
-        """Membuat chart distribusi per jam"""
-        if 'trx_hour' in df.columns:
-            hourly_fraud = df.groupby('trx_hour')['predicted_fraud'].agg(['count', 'sum']).reset_index()
-            hourly_fraud['fraud_rate'] = (hourly_fraud['sum'] / hourly_fraud['count'] * 100).round(2)
+    def create_payment_source_chart(self, original_df):
+        """Membuat chart distribusi payment source"""
+        if 'paymentSourceCode' in original_df.columns:
+            payment_counts = original_df['paymentSourceCode'].value_counts()
             
-            fig, ax = plt.subplots(figsize=(10, 6))
+            fig, ax = plt.subplots(figsize=(8, 4))
+            bars = ax.bar(payment_counts.index, payment_counts.values, 
+                         color='#2E86AB', alpha=0.7, edgecolor='black', linewidth=0.5)
             
-            bars = ax.bar(hourly_fraud['trx_hour'], hourly_fraud['fraud_rate'], 
-                         color='#dc3545', alpha=0.7, edgecolor='black', linewidth=0.5)
-            
-            ax.set_xlabel('Jam Transaksi', fontsize=12)
-            ax.set_ylabel('Fraud Rate (%)', fontsize=12)
-            ax.set_title('Fraud Rate per Jam', fontsize=14, fontweight='bold')
+            ax.set_xlabel('Payment Source', fontsize=10)
+            ax.set_ylabel('Jumlah Transaksi', fontsize=10)
+            ax.set_title('Distribusi Transaksi per Payment Source', fontsize=12, fontweight='bold')
             ax.grid(True, alpha=0.3)
             
-            # Highlight highest fraud rate
-            max_idx = hourly_fraud['fraud_rate'].idxmax()
-            bars[max_idx].set_color('#a71d2a')
-            
+            # Rotate x-axis labels if needed
+            plt.xticks(rotation=45, ha='right')
             plt.tight_layout()
             return fig
         return None
     
-    def create_merchant_chart(self, df):
-        """Membuat chart merchant"""
-        if 'merchantId' in df.columns:
-            merchant_fraud = df[df['predicted_fraud'] == 1]['merchantId'].value_counts().head(10)
+    def create_merchant_fraud_chart(self, original_df, processed_df):
+        """Membuat chart merchant fraud"""
+        if 'merchantId' in original_df.columns:
+            # Gabungkan original data dengan hasil prediksi
+            merchant_fraud_data = original_df.copy()
+            merchant_fraud_data['predicted_fraud'] = processed_df['predicted_fraud']
+            
+            # Hitung fraud per merchant
+            merchant_fraud = merchant_fraud_data[merchant_fraud_data['predicted_fraud'] == 1]['merchantId'].value_counts().head(10)
             
             if len(merchant_fraud) > 0:
-                fig, ax = plt.subplots(figsize=(10, 6))
+                fig, ax = plt.subplots(figsize=(8, 4))
                 
                 bars = ax.barh(range(len(merchant_fraud)), merchant_fraud.values, 
                               color='#dc3545', alpha=0.7)
                 
                 ax.set_yticks(range(len(merchant_fraud)))
                 ax.set_yticklabels([f"Merchant {mid}" for mid in merchant_fraud.index])
-                ax.set_xlabel('Jumlah Fraud', fontsize=12)
-                ax.set_title('Top 10 Merchant dengan Fraud Terbanyak', fontsize=14, fontweight='bold')
+                ax.set_xlabel('Jumlah Fraud', fontsize=10)
+                ax.set_title('Top 10 Merchant dengan Fraud Terbanyak', fontsize=12, fontweight='bold')
                 ax.grid(True, alpha=0.3, axis='x')
                 
                 plt.tight_layout()
@@ -423,7 +424,7 @@ class FraudDetectionDashboard:
             )
             
             fig = exp.as_pyplot_figure()
-            fig.set_size_inches(12, 8)
+            fig.set_size_inches(10, 6)
             plt.tight_layout()
             return fig
             
@@ -494,19 +495,19 @@ def page_analysis():
         return
     
     # Get data from session
-    raw_df = st.session_state.uploaded_data
+    original_df = st.session_state.uploaded_data
     
     # Preprocessing
     with st.spinner("🔄 Processing data..."):
         try:
-            df = preprocess_for_prediction(raw_df)
+            processed_df = preprocess_for_prediction(original_df)
             
             # Validate and predict
-            if not dashboard.validate_data(df, selected_features):
+            if not dashboard.validate_data(processed_df, selected_features):
                 st.error("❌ Data validation failed")
                 return
             
-            df_with_pred, X_scaled = dashboard.perform_prediction(df, model, scaler, selected_features)
+            df_with_pred, X_scaled = dashboard.perform_prediction(processed_df, model, scaler, selected_features)
             
             if df_with_pred is None:
                 st.error("❌ Prediction failed")
@@ -522,48 +523,60 @@ def page_analysis():
     # Metrics
     total_fraud, fraud_rate = dashboard.create_compact_metrics(df_with_pred)
     
-    # Tabs untuk visualisasi
-    tab1, tab2, tab3, tab4 = st.tabs(["📊 Overview", "📈 Trends", "🔍 Details", "🧠 AI Explanation"])
+    # Tabs untuk visualisasi (hanya 2 tab)
+    tab1, tab2 = st.tabs(["🔍 Details", "🧠 AI Explanation"])
     
     with tab1:
+        # Overview metrics dan visualisasi
+        st.markdown("### 📊 Overview & Visualizations")
+        
+        # Visualisasi dalam grid
         col1, col2 = st.columns(2)
         
         with col1:
-            st.markdown("### 📊 Fraud Distribution")
+            st.markdown("#### 📊 Fraud Distribution")
             fig_pie = dashboard.create_fraud_pie_chart(df_with_pred)
             st.pyplot(fig_pie, use_container_width=True)
             plt.close(fig_pie)
         
         with col2:
-            st.markdown("### 🏪 Top Fraud Merchants")
-            fig_merchant = dashboard.create_merchant_chart(df_with_pred)
-            if fig_merchant:
-                st.pyplot(fig_merchant, use_container_width=True)
-                plt.close(fig_merchant)
+            st.markdown("#### 💳 Payment Source Distribution")
+            fig_payment = dashboard.create_payment_source_chart(original_df)
+            if fig_payment:
+                st.pyplot(fig_payment, use_container_width=True)
+                plt.close(fig_payment)
             else:
-                st.info("No merchant data available for visualization")
-    
-    with tab2:
-        st.markdown("### ⏰ Hourly Fraud Pattern")
-        fig_hourly = dashboard.create_hourly_chart(df_with_pred)
-        if fig_hourly:
-            st.pyplot(fig_hourly, use_container_width=True)
-            plt.close(fig_hourly)
-        else:
-            st.info("No hourly data available for visualization")
-    
-    with tab3:
-        # Fraud details
-        detected = df_with_pred[df_with_pred['predicted_fraud'] == 1]
+                st.info("No payment source data available")
         
-        if len(detected) > 0:
-            st.markdown(f"### 🚨 Fraud Transactions ({len(detected)} detected)")
+        # Merchant fraud chart (full width)
+        st.markdown("#### 🏪 Top Fraud Merchants")
+        fig_merchant = dashboard.create_merchant_fraud_chart(original_df, df_with_pred)
+        if fig_merchant:
+            st.pyplot(fig_merchant, use_container_width=True)
+            plt.close(fig_merchant)
+        else:
+            st.info("No merchant fraud data available")
+        
+        # Fraud details
+        st.markdown("---")
+        detected_fraud = df_with_pred[df_with_pred['predicted_fraud'] == 1]
+        
+        if len(detected_fraud) > 0:
+            st.markdown(f"### 🚨 Detected Fraud Transactions ({len(detected_fraud)} found)")
             
-            # Show fraud data
-            st.dataframe(detected, use_container_width=True)
+            # Gabungkan data original dengan hasil prediksi untuk ditampilkan
+            fraud_with_original = original_df.copy()
+            fraud_with_original['predicted_fraud'] = df_with_pred['predicted_fraud']
+            fraud_with_original['fraud_probability'] = df_with_pred['fraud_probability']
+            
+            # Filter hanya yang fraud
+            fraud_display = fraud_with_original[fraud_with_original['predicted_fraud'] == 1]
+            
+            # Show fraud data (data original)
+            st.dataframe(fraud_display, use_container_width=True)
             
             # Download button
-            csv = detected.to_csv(index=False)
+            csv = fraud_display.to_csv(index=False)
             st.download_button(
                 label="📥 Download Fraud Data",
                 data=csv,
@@ -573,20 +586,21 @@ def page_analysis():
             )
             
             # Show probability distribution
-            st.markdown("### 📊 Fraud Probability Distribution")
-            fig, ax = plt.subplots(figsize=(10, 6))
+            st.markdown("#### 📊 Fraud Probability Distribution")
+            fig, ax = plt.subplots(figsize=(8, 4))
             ax.hist(df_with_pred['fraud_probability'], bins=30, alpha=0.7, color='#2E86AB')
             ax.set_xlabel('Fraud Probability')
             ax.set_ylabel('Frequency')
             ax.set_title('Distribution of Fraud Probabilities')
             ax.grid(True, alpha=0.3)
+            plt.tight_layout()
             st.pyplot(fig, use_container_width=True)
             plt.close(fig)
             
         else:
             st.success("🎉 No fraud transactions detected!")
     
-    with tab4:
+    with tab2:
         st.markdown("### 🧠 AI Explanation (LIME)")
         st.markdown("Select a transaction to see why the AI made its prediction:")
         
@@ -602,16 +616,17 @@ def page_analysis():
             # Show transaction details
             st.markdown("#### Transaction Details:")
             selected_transaction = df_with_pred.iloc[idx_to_explain]
+            selected_original = original_df.iloc[idx_to_explain]
             
             col1, col2 = st.columns(2)
             with col1:
                 st.write(f"**Prediction:** {'🚨 FRAUD' if selected_transaction['predicted_fraud'] == 1 else '✅ NON-FRAUD'}")
                 st.write(f"**Probability:** {selected_transaction['fraud_probability']:.4f}")
             with col2:
-                if 'merchantId' in selected_transaction:
-                    st.write(f"**Merchant ID:** {selected_transaction['merchantId']}")
-                if 'trx_hour' in selected_transaction:
-                    st.write(f"**Hour:** {selected_transaction['trx_hour']}")
+                if 'merchantId' in selected_original:
+                    st.write(f"**Merchant ID:** {selected_original['merchantId']}")
+                if 'paymentSourceCode' in selected_original:
+                    st.write(f"**Payment Source:** {selected_original['paymentSourceCode']}")
             
             # Generate LIME explanation
             if st.button("🔍 Generate AI Explanation", key="lime_btn", use_container_width=True):
