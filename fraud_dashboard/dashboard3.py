@@ -31,7 +31,7 @@ st.markdown("""
         color: #2E86AB;
         text-align: center;
         margin-bottom: 0.2rem;
-        padding: 1rem 0;
+        padding: 0.5 rem;
     }
     
     .sub-header {
@@ -49,7 +49,7 @@ st.markdown("""
         line-height: 1.6;
         margin: 1rem auto;
         max-width: 800px;
-        padding: 0 2rem;
+        padding: 0.2rem;
     }
     
     .upload-icon {
