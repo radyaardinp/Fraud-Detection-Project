@@ -52,11 +52,6 @@ st.markdown("""
         padding: 0 2rem;
     }
     
-    .upload-section:hover {
-        border-color: #2E86AB;
-        background: #f0f8ff;
-    }
-    
     .upload-icon {
         font-size: 4rem;
         color: #2E86AB;
