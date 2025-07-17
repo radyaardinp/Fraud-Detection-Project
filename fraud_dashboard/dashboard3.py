@@ -18,10 +18,17 @@ def landing_page():
     st.markdown("### 📁 Upload Data CSV untuk memulai analisis")
     uploaded_file = st.file_uploader("Upload CSV", type=["csv"])
 
+    # Kalau file sudah di-upload, tampilkan preview + tombol Next
     if uploaded_file is not None:
-        # Simpan data ke session_state
         df = pd.read_csv(uploaded_file)
-        st.session_state.df = df
-        st.session_state.file_uploaded = True
+        st.session_state.df = df  # simpan data
+
         st.success("✅ File berhasil diupload!")
-        st.experimental_rerun()  # Refresh untuk pindah halaman
+        
+        # Preview 5 baris pertama
+        with st.expander("👀 Preview Data"):
+            st.dataframe(df.head(15))
+
+        # Tombol Next untuk pindah ke halaman analisis
+        if st.button("➡ Lanjut ke Analisis"):
+            st.session_state.file_uploaded = True
