@@ -59,14 +59,14 @@ st.markdown("""
     }
     
     .upload-title {
-        font-size: 1.4rem;
+        font-size: 1.2rem;
         font-weight: 600;
         color: #333;
         margin-bottom: 0.5rem;
     }
     
     .upload-subtitle {
-        font-size: 1rem;
+        font-size: 0.8 rem;
         color: #666;
         margin-bottom: 1.5rem;
     }
@@ -76,7 +76,7 @@ st.markdown("""
         color: white;
         border: none;
         padding: 0.75rem 2rem;
-        border-radius: 8px;
+        border-radius: 6px;
         font-weight: 600;
         font-size: 1rem;
         cursor: pointer;
@@ -117,7 +117,7 @@ st.markdown("""
         }
         
         .upload-icon {
-            font-size: 3rem;
+            font-size: 2rem;
         }
         
         .upload-title {
