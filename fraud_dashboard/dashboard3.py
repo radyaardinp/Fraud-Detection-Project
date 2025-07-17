@@ -143,9 +143,6 @@ dan memberikan interpretasi model menggunakan <span class="highlight-text">Expla
 
 # File upload section
 st.markdown('<div class="upload-section">', unsafe_allow_html=True)
-st.markdown('<div class="upload-icon">☁️</div>', unsafe_allow_html=True)
-st.markdown('<div class="upload-title">Drag and drop file here</div>', unsafe_allow_html=True)
-st.markdown('<div class="upload-subtitle">Limit 200MB per file • CSV</div>', unsafe_allow_html=True)
 
 # File uploader
 uploaded_file = st.file_uploader(
