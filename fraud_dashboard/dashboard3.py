@@ -163,17 +163,16 @@ if uploaded_file is not None:
     st.success(f"✅ File uploaded successfully: **{uploaded_file.name}**")
     try:
         df=pd.read_csv(uploaded_file)
-        
-    # File details
-    col1, col2 = st.columns(2)
-    with col1:
-        st.info(f"**Rows:** {len(df):,}")
-        st.info(f"**Columns:** {df.shape[1]}")
-    with col2:
-        st.metric("File Size", f"{uploaded_file.size / (1024*1024):.2f} MB")
-        st.metric("File Type", uploaded_file.type)
+        # File details
+        col1, col2 = st.columns(2)
+        with col1:
+            st.info(f"**Rows:** {len(df):,}")
+            st.info(f"**Columns:** {df.shape[1]}")
+        with col2:
+            st.metric("File Size", f"{uploaded_file.size / (1024*1024):.2f} MB")
+            st.metric("File Type", uploaded_file.type)
 
-    # Show sample of uploaded data
+        # Show sample of uploaded data
         st.markdown("### 📋 Data Preview")
         st.dataframe(df.head(), use_container_width=True)
 
