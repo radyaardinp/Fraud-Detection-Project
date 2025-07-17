@@ -25,7 +25,7 @@ st.markdown("""
 /* Judul */
 .title {
     text-align: center;
-    font-size: 40px;
+    font-size: 60px;
     font-weight: 800;
     color: #007bff;
     margin-bottom: 5px;
@@ -34,7 +34,7 @@ st.markdown("""
 /* Sub Judul */
 .subtitle {
     text-align: center;
-    font-size: 22px;
+    font-size: 40px;
     font-weight: 500;
     color: #444;
     margin-bottom: 10px;
@@ -43,7 +43,7 @@ st.markdown("""
 /* Deskripsi */
 .description {
     text-align: center;
-    font-size: 16px;
+    font-size: 20px;
     color: #555;
     margin-bottom: 30px;
     padding: 0 15%;
