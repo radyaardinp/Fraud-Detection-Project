@@ -1,4 +1,14 @@
 import streamlit as st
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import joblib
+import numpy as np
+from joblib import load
+from lime.lime_tabular import LimeTabularExplainer
+from preprocessing_pipeline import preprocess_for_prediction
+from normalize import normalize_data
+from predict_pipeline import activation_function
 
 # Initialize session state for navigation
 if 'current_page' not in st.session_state:
@@ -42,17 +52,6 @@ st.markdown("""
         padding: 0 2rem;
     }
     
-    .upload-section {
-        background: #f8f9fa;
-        padding: 3rem 2rem;
-        border-radius: 15px;
-        border: 2px dashed #ddd;
-        margin: 2rem auto;
-        max-width: 600px;
-        text-align: center;
-        transition: all 0.3s ease;
-    }
-    
     .upload-section:hover {
         border-color: #2E86AB;
         background: #f0f8ff;
@@ -89,15 +88,6 @@ st.markdown("""
         transition: all 0.3s;
     }
     
-    .stButton > button:hover {
-        background-color: #1e5a7a;
-        transform: translateY(-2px);
-    }
-    
-    .highlight-text {
-        color: #2E86AB;
-        font-weight: 600;
-    }
     
     .footer {
         margin-top: 3rem;
