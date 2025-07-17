@@ -112,15 +112,6 @@ def page_upload():
             font-weight: 600;
         }
         
-        .upload-section {
-            background: #f8f9fa;
-            padding: 2rem;
-            border-radius: 10px;
-            margin: 2rem auto;
-            max-width: 600px;
-            border: 2px dashed #dee2e6;
-        }
-        
         .stButton > button {
             background-color: #2E86AB;
             color: white;
