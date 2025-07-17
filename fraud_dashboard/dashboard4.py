@@ -177,7 +177,6 @@ def page_upload():
     st.markdown('<div class="upload-section">', unsafe_allow_html=True)
     
     st.markdown("### 📁 Upload Data Transaksi")
-    st.markdown("Silakan upload file CSV berisi data transaksi untuk dianalisis")
 
     # File uploader
     uploaded_file = st.file_uploader(
