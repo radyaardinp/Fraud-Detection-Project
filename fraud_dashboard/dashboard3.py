@@ -10,110 +10,227 @@ from preprocessing_pipeline import preprocess_for_prediction
 from normalize import normalize_data
 from predict_pipeline import activation_function
 
-# ====== SETUP DASHBOARD ======
-st.set_page_config(page_title="Fraud Detection Dashboard", layout="centered")
+# Page configuration
+st.set_page_config(
+    page_title="Fraud Detection System Dashboard",
+    page_icon="🔍",
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
 
-# ====== CSS CUSTOM (Tema Biru-Putih) ======
+# Custom CSS for better styling
 st.markdown("""
 <style>
-/* Background */
-.main {
-    background-color: #f9f9f9;
-    padding: 20px;
-}
-
-/* Judul */
-.title {
-    text-align: center;
-    font-size: 60px;
-    font-weight: 800;
-    color: #007bff;
-    margin-bottom: 5px;
-}
-
-/* Sub Judul */
-.subtitle {
-    text-align: center;
-    font-size: 40px;
-    font-weight: 500;
-    color: #444;
-    margin-bottom: 10px;
-}
-
-/* Deskripsi */
-.description {
-    text-align: center;
-    font-size: 20px;
-    color: #555;
-    margin-bottom: 30px;
-    padding: 0 15%;
-    line-height: 1.6;
-}
-
-/* Upload Box */
-.uploadedFile {
-    border: 2px dashed #007bff !important;
-    padding: 20px;
-    border-radius: 10px;
-    background-color: #fff;
-}
-
-/* Tombol */
-div.stButton > button {
-    background-color: #007bff;
-    color: white;
-    font-size: 18px;
-    font-weight: bold;
-    border-radius: 8px;
-    width: 100%;
-    height: 50px;
-    margin-top: 20px;
-}
-div.stButton > button:hover {
-    background-color: #0056b3;
-}
+    .main-header {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #2E86AB;
+        text-align: center;
+        margin-bottom: 0.5rem;
+        padding: 1rem 0;
+    }
+    
+    .sub-header {
+        font-size: 1.3rem;
+        font-weight: 500;
+        color: #666;
+        text-align: center;
+        margin-bottom: 1rem;
+    }
+    
+    .description-text {
+        font-size: 1.1rem;
+        color: #555;
+        text-align: center;
+        line-height: 1.6;
+        margin: 2rem auto;
+        max-width: 800px;
+        padding: 0 2rem;
+    }
+    
+    .upload-section {
+        background: #f8f9fa;
+        padding: 3rem 2rem;
+        border-radius: 15px;
+        border: 2px dashed #ddd;
+        margin: 2rem auto;
+        max-width: 600px;
+        text-align: center;
+        transition: all 0.3s ease;
+    }
+    
+    .upload-section:hover {
+        border-color: #2E86AB;
+        background: #f0f8ff;
+    }
+    
+    .upload-icon {
+        font-size: 4rem;
+        color: #2E86AB;
+        margin-bottom: 1rem;
+    }
+    
+    .upload-title {
+        font-size: 1.4rem;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 0.5rem;
+    }
+    
+    .upload-subtitle {
+        font-size: 1rem;
+        color: #666;
+        margin-bottom: 1.5rem;
+    }
+    
+    .stButton > button {
+        background-color: #2E86AB;
+        color: white;
+        border: none;
+        padding: 0.75rem 2rem;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: all 0.3s;
+        width: 100%;
+    }
+    
+    .stButton > button:hover {
+        background-color: #1e5a7a;
+        transform: translateY(-2px);
+    }
+    
+    .highlight-text {
+        color: #2E86AB;
+        font-weight: 600;
+    }
+    
+    .footer {
+        margin-top: 3rem;
+        padding: 2rem;
+        text-align: center;
+        color: #666;
+        border-top: 1px solid #eee;
+    }
+    
+    /* Hide Streamlit default elements */
+    .stFileUploader > div > div > div {
+        display: none;
+    }
+    
+    /* Custom file uploader styling */
+    .stFileUploader {
+        background: transparent;
+    }
+    
+    /* Responsive design */
+    @media (max-width: 768px) {
+        .main-header {
+            font-size: 2rem;
+        }
+        
+        .sub-header {
+            font-size: 1.1rem;
+        }
+        
+        .description-text {
+            font-size: 1rem;
+            padding: 0 1rem;
+        }
+        
+        .upload-section {
+            padding: 2rem 1rem;
+            margin: 1rem;
+        }
+        
+        .upload-icon {
+            font-size: 3rem;
+        }
+        
+        .upload-title {
+            font-size: 1.2rem;
+        }
+    }
 </style>
 """, unsafe_allow_html=True)
 
-# ====== SESSION STATE ======
-if 'file_uploaded' not in st.session_state:
-    st.session_state.file_uploaded = False
-    st.session_state.df = None
+# Main header
+st.markdown('<div class="main-header">Fraud Detection System Dashboard</div>', unsafe_allow_html=True)
+st.markdown('<div class="sub-header">Online Payment Transaction</div>', unsafe_allow_html=True)
 
-# ====== HALAMAN 1 ======
-def landing_page():
-    # Judul & Deskripsi
-    st.markdown('<p class="title">Fraud Detection System Dashboard</p>', unsafe_allow_html=True)
-    st.markdown('<p class="subtitle">Online Payment Transaction</p>', unsafe_allow_html=True)
+# Description
+st.markdown("""
+<div class="description-text">
+Dashboard ini dirancang untuk mendeteksi potensi transaksi fraud pada 
+pembayaran online menggunakan metode <span class="highlight-text">Extreme Learning Machine 
+(ELM)</span>. Sistem ini mempermudah analisis pola transaksi mencurigakan 
+dan memberikan interpretasi model menggunakan <span class="highlight-text">Explainable AI (LIME)</span>.
+</div>
+""", unsafe_allow_html=True)
 
-    # Deskripsi Singkat
-    st.markdown("""
-    <p class="description">
-    Dashboard ini dirancang untuk mendeteksi potensi transaksi fraud pada pembayaran online 
-    menggunakan metode <b>Extreme Learning Machine (ELM)</b>. 
-    Sistem ini mempermudah analisis pola transaksi mencurigakan dan 
-    memberikan interpretasi model menggunakan Explainable AI (LIME).
-    </p>
-    """, unsafe_allow_html=True)
+# File upload section
+st.markdown('<div class="upload-section">', unsafe_allow_html=True)
+st.markdown('<div class="upload-icon">☁️</div>', unsafe_allow_html=True)
+st.markdown('<div class="upload-title">Drag and drop file here</div>', unsafe_allow_html=True)
+st.markdown('<div class="upload-subtitle">Limit 200MB per file • CSV</div>', unsafe_allow_html=True)
 
-    # Upload file
-    uploaded_file = st.file_uploader("Upload File CSV", type=["csv"], label_visibility="collapsed")
+# File uploader
+uploaded_file = st.file_uploader(
+    "",
+    type=['csv'],
+    help="Upload your transaction data in CSV format",
+    label_visibility="collapsed"
+)
 
-    # Kalau sudah upload
-    if uploaded_file is not None:
+# Browse files button
+col1, col2, col3 = st.columns([1, 1, 1])
+with col2:
+    if st.button("📁 Browse files", key="browse_btn"):
+        st.info("💡 Please use the drag & drop area above to select your CSV file")
+
+st.markdown('</div>', unsafe_allow_html=True)
+
+# Show file info if uploaded
+if uploaded_file is not None:
+    st.markdown("---")
+    st.success(f"✅ File uploaded successfully: **{uploaded_file.name}**")
+    
+    # File details
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("File Size", f"{uploaded_file.size / (1024*1024):.2f} MB")
+    with col2:
+        st.metric("File Type", uploaded_file.type)
+    with col3:
+        st.metric("Status", "Ready for Analysis")
+    
+    # Show sample of uploaded data
+    try:
+        import pandas as pd
         df = pd.read_csv(uploaded_file)
-        st.session_state.df = df  # Simpan data
+        
+        st.markdown("### 📋 Data Preview")
+        st.dataframe(df.head(), use_container_width=True)
+        
+        # Basic info
+        st.markdown("### 📊 Data Information")
+        col1, col2 = st.columns(2)
+        with col1:
+            st.info(f"**Rows:** {len(df):,}")
+            st.info(f"**Columns:** {df.shape[1]}")
+        with col2:
+            st.info(f"**Memory Usage:** {df.memory_usage(deep=True).sum() / (1024*1024):.2f} MB")
+            st.info(f"**Data Types:** {df.dtypes.value_counts().to_dict()}")
+            
+    except Exception as e:
+        st.error(f"❌ Error reading file: {str(e)}")
+        st.info("Please ensure your CSV file is properly formatted.")
 
-        # Success message
-        st.success("✅ File berhasil diupload!")
-
-        # Preview Data
-        with st.expander("👀 Lihat 5 baris pertama data"):
-            st.dataframe(df.head())
-
-        # Tombol lanjut
-        if st.button("➡ Lanjut ke Analisis"):
-            st.session_state.file_uploaded = True
-
-# Jalankan halaman
-landing_page()
+# Footer
+st.markdown("""
+<div class="footer">
+    <p>🔐 <strong>Fraud Detection System</strong> - Powered by Extreme Learning Machine & LIME</p>
+    <p>Built with ❤️ using Streamlit</p>
+</div>
+""", unsafe_allow_html=True)
