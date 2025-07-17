@@ -174,10 +174,6 @@ if uploaded_file is not None:
         st.metric("File Type", uploaded_file.type)
 
     # Show sample of uploaded data
-    try:
-        import pandas as pd
-        df = pd.read_csv(uploaded_file)
-        
         st.markdown("### 📋 Data Preview")
         st.dataframe(df.head(), use_container_width=True)
 
