@@ -161,7 +161,9 @@ st.markdown('</div>', unsafe_allow_html=True)
 if uploaded_file is not None:
     st.markdown("---")
     st.success(f"✅ File uploaded successfully: **{uploaded_file.name}**")
-    
+    try:
+        df=pd.read_csv(uploaded_file)
+        
     # File details
     col1, col2 = st.columns(2)
     with col1:
