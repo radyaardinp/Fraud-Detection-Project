@@ -367,15 +367,11 @@ class FraudDetectionDashboard:
             return fig
         return None
     
-    def create_merchant_fraud_chart(self, original_df, processed_df):
-        """Membuat chart merchant fraud"""
-        if 'merchantId' in original_df.columns:
-            # Gabungkan original data dengan hasil prediksi
-            merchant_fraud_data = original_df.copy()
-            merchant_fraud_data['predicted_fraud'] = processed_df['predicted_fraud']
-            
-            # Hitung fraud per merchant
-            merchant_fraud = merchant_fraud_data[merchant_fraud_data['predicted_fraud'] == 1]['merchantId'].value_counts().head(10)
+    def create_merchant_fraud_chart(self, processed_df):
+        """Membuat chart merchant fraud dari data yang sudah diproses"""
+        if 'merchantId' in processed_df.columns:
+            # Gunakan data yang sudah diproses
+            merchant_fraud = processed_df[processed_df['predicted_fraud'] == 1]['merchantId'].value_counts().head(10)
             
             if len(merchant_fraud) > 0:
                 fig, ax = plt.subplots(figsize=(8, 4))
@@ -550,7 +546,7 @@ def page_analysis():
         
         # Merchant fraud chart (full width)
         st.markdown("#### 🏪 Top Fraud Merchants")
-        fig_merchant = dashboard.create_merchant_fraud_chart(original_df, df_with_pred)
+        fig_merchant = dashboard.create_merchant_fraud_chart(df_with_pred)
         if fig_merchant:
             st.pyplot(fig_merchant, use_container_width=True)
             plt.close(fig_merchant)
@@ -564,15 +560,11 @@ def page_analysis():
         if len(detected_fraud) > 0:
             st.markdown(f"### 🚨 Detected Fraud Transactions ({len(detected_fraud)} found)")
             
-            # Gabungkan data original dengan hasil prediksi untuk ditampilkan
-            fraud_with_original = original_df.copy()
-            fraud_with_original['predicted_fraud'] = df_with_pred['predicted_fraud']
-            fraud_with_original['fraud_probability'] = df_with_pred['fraud_probability']
+            # Tampilkan data yang sudah diproses (bukan data original)
+            # Data ini sudah melalui preprocessing, encoding, normalisasi, prediksi
+            fraud_display = detected_fraud.copy()
             
-            # Filter hanya yang fraud
-            fraud_display = fraud_with_original[fraud_with_original['predicted_fraud'] == 1]
-            
-            # Show fraud data (data original)
+            # Show fraud data (data yang sudah diproses)
             st.dataframe(fraud_display, use_container_width=True)
             
             # Download button
@@ -616,17 +608,18 @@ def page_analysis():
             # Show transaction details
             st.markdown("#### Transaction Details:")
             selected_transaction = df_with_pred.iloc[idx_to_explain]
-            selected_original = original_df.iloc[idx_to_explain]
             
             col1, col2 = st.columns(2)
             with col1:
                 st.write(f"**Prediction:** {'🚨 FRAUD' if selected_transaction['predicted_fraud'] == 1 else '✅ NON-FRAUD'}")
                 st.write(f"**Probability:** {selected_transaction['fraud_probability']:.4f}")
             with col2:
-                if 'merchantId' in selected_original:
-                    st.write(f"**Merchant ID:** {selected_original['merchantId']}")
-                if 'paymentSourceCode' in selected_original:
-                    st.write(f"**Payment Source:** {selected_original['paymentSourceCode']}")
+                if 'merchantId' in selected_transaction:
+                    st.write(f"**Merchant ID:** {selected_transaction['merchantId']}")
+                if 'paymentSourceCode' in selected_transaction:
+                    st.write(f"**Payment Source:** {selected_transaction['paymentSourceCode']}")
+                elif 'trx_hour' in selected_transaction:
+                    st.write(f"**Transaction Hour:** {selected_transaction['trx_hour']}")
             
             # Generate LIME explanation
             if st.button("🔍 Generate AI Explanation", key="lime_btn", use_container_width=True):
