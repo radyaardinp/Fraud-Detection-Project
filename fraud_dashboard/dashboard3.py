@@ -166,12 +166,12 @@ if uploaded_file is not None:
             st.info(f"**Rows:** {len(df):,}")
             st.info(f"**Columns:** {df.shape[1]}")
         with col2:
-            st.metric("File Size", f"{uploaded_file.size / (1024*1024):.2f} MB")
-            st.metric("File Type", uploaded_file.type)
+            st.metric(f"**File Size**", f"{uploaded_file.size / (1024*1024):.2f} MB")
+            st.metric(f"**File Type**", uploaded_file.type)
 
         # Show sample of uploaded data
         st.markdown("### 📋 Data Preview")
-        st.dataframe(df.head(), use_container_width=True)
+        st.dataframe(df.head(10), use_container_width=True)
 
         # Start Analysis button
         st.markdown("---")
