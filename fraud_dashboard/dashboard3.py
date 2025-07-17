@@ -1,14 +1,8 @@
 import streamlit as st
-import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
-import joblib
-import numpy as np
-from joblib import load
-from lime.lime_tabular import LimeTabularExplainer
-from preprocessing_pipeline import preprocess_for_prediction
-from normalize import normalize_data
-from predict_pipeline import activation_function
+
+# Initialize session state for navigation
+if 'current_page' not in st.session_state:
+    st.session_state.current_page = 'upload'
 
 # Page configuration
 st.set_page_config(
@@ -93,7 +87,6 @@ st.markdown("""
         font-size: 1rem;
         cursor: pointer;
         transition: all 0.3s;
-        width: 100%;
     }
     
     .stButton > button:hover {
@@ -222,10 +215,61 @@ if uploaded_file is not None:
         with col2:
             st.info(f"**Memory Usage:** {df.memory_usage(deep=True).sum() / (1024*1024):.2f} MB")
             st.info(f"**Data Types:** {df.dtypes.value_counts().to_dict()}")
+        
+        # Start Analysis button
+        st.markdown("---")
+        col1, col2, col3 = st.columns([1, 1, 1])
+        
+        with col2:
+            if st.button("🚀 Start Analysis", key="analysis_btn", use_container_width=True):
+                st.session_state.current_page = 'analysis'
+                st.session_state.uploaded_data = df  # Store data in session
+                st.rerun()
             
     except Exception as e:
         st.error(f"❌ Error reading file: {str(e)}")
         st.info("Please ensure your CSV file is properly formatted.")
+
+# Example of how to handle different pages
+if st.session_state.current_page == 'analysis':
+    st.markdown("---")
+    st.markdown("## 🔍 Analysis Page")
+    st.success("✅ Data berhasil diupload dan siap untuk dianalisis!")
+    
+    # Show uploaded data info
+    if 'uploaded_data' in st.session_state:
+        df = st.session_state.uploaded_data
+        st.markdown("### 📊 Data yang akan dianalisis:")
+        
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Total Rows", f"{len(df):,}")
+        with col2:
+            st.metric("Total Columns", f"{df.shape[1]}")
+        with col3:
+            st.metric("File Size", f"{df.memory_usage(deep=True).sum() / (1024*1024):.2f} MB")
+    
+    st.info("🔄 Halaman analisis sedang dalam pengembangan...")
+    
+    # Back to upload button
+    if st.button("⬅️ Back to Upload"):
+        st.session_state.current_page = 'upload'
+        st.rerun()
+
+elif st.session_state.current_page == 'dashboard':
+    st.markdown("---")
+    st.markdown("## 📊 Dashboard Page")
+    st.info("This is where the dashboard functionality would go")
+    
+    # Example dashboard content
+    if 'uploaded_data' in st.session_state:
+        st.markdown("### Data Summary")
+        st.dataframe(st.session_state.uploaded_data.describe())
+    
+    # Back to upload button
+    if st.button("⬅️ Back to Upload"):
+        st.session_state.current_page = 'upload'
+        st.rerun()
 
 # Footer
 st.markdown("""
