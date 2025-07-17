@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -28,11 +29,11 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed"
 )
-
-# Custom CSS for better styling
-st.markdown("""
-<style>
-    .main-header {
+def page_upload():
+    # Custom CSS for better styling
+    st.markdown("""
+    <style>
+        .main-header {
         font-size: 2.5rem;
         font-weight: 700;
         color: #2E86AB;
@@ -193,6 +194,7 @@ if uploaded_file is not None:
     except Exception as e:
         st.error(f"❌ Error reading file: {str(e)}")
         st.info("Please ensure your CSV file is properly formatted.")
+
 
 #==================== HALAMAN 2 ==============================
 
