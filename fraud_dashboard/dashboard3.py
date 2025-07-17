@@ -88,18 +88,12 @@ st.markdown("""
         transition: all 0.3s;
     }
     
-    
     .footer {
         margin-top: 3rem;
         padding: 2rem;
         text-align: center;
         color: #666;
         border-top: 1px solid #eee;
-    }
-    
-    /* Hide Streamlit default elements */
-    .stFileUploader > div > div > div {
-        display: none;
     }
     
     /* Custom file uploader styling */
