@@ -15,6 +15,10 @@ if 'current_page' not in st.session_state:
     st.session_state.current_page = 'upload'
 if 'uploaded_data' not in st.session_state:
     st.session_state.uploaded_data = None
+if 'preprocessed_data' not in st.session_state:
+    st.session_state.preprocessed_data = None
+if 'selected_features_data' not in st.session_state:
+    st.session_state.selected_features_data = None
 if 'show_lime' not in st.session_state:
     st.session_state.show_lime = False
 if 'lime_idx' not in st.session_state:
@@ -31,7 +35,7 @@ st.set_page_config(
 # Aktivasi fungsi
 def activation_function(x, func_type='sigmoid'):
     if func_type == 'sigmoid':
-        return 1 / (1 + np.exp(-x))
+        return 1 / (1 + np.exp(-np.clip(x, -500, 500)))  # Clip untuk stabilitas
     elif func_type == 'tanh':
         return np.tanh(x)
     elif func_type == 'relu':
@@ -52,7 +56,7 @@ def elm_predict(X, model_dict):
     # Output layer
     y_pred_raw = np.dot(H, output_weights)
     # Probabilitas fraud (gunakan sigmoid)
-    y_prob = 1 / (1 + np.exp(-y_pred_raw))
+    y_prob = 1 / (1 + np.exp(-np.clip(y_pred_raw, -500, 500)))  # Clip untuk stabilitas
     # Threshold untuk klasifikasi
     y_pred = (y_prob >= threshold).astype(int)
     
@@ -68,8 +72,8 @@ def elm_predict_proba(X, model_dict):
     H = activation_function(np.dot(X, input_weights) + biases, func_type=activation_type)
     y_raw = np.dot(H, output_weights)
 
-    # Konversi ke probabilitas
-    y_prob = 1 / (1 + np.exp(-y_raw))
+    # Konversi ke probabilitas dengan clipping untuk stabilitas
+    y_prob = 1 / (1 + np.exp(-np.clip(y_raw, -500, 500)))
 
     # LIME butuh bentuk (n_samples, 2): [non-fraud, fraud]
     return np.column_stack([1 - y_prob, y_prob])
@@ -301,11 +305,14 @@ class FraudDetectionDashboard:
             # Perform scaling and prediction
             X_scaled = scaler.transform(X_input.values)
             y_pred, y_prob = elm_predict(X_scaled, model)
-            df['predicted_fraud'] = y_pred
-            df['fraud_probability'] = y_prob
+            
+            # Buat copy untuk hasil prediksi
+            result_df = df.copy()
+            result_df['predicted_fraud'] = y_pred
+            result_df['fraud_probability'] = y_prob
             
             st.success(f"✅ Prediction successful! Shape: {X_scaled.shape}")
-            return df, X_scaled
+            return result_df, X_scaled
             
         except Exception as e:
             st.error(f"Prediction error: {str(e)}")
@@ -347,10 +354,10 @@ class FraudDetectionDashboard:
         plt.tight_layout()
         return fig
     
-    def create_payment_source_chart(self, original_df):
-        """Membuat chart distribusi payment source"""
-        if 'paymentSourceCode' in original_df.columns:
-            payment_counts = original_df['paymentSourceCode'].value_counts()
+    def create_payment_source_chart(self, preprocessed_df):
+        """Membuat chart distribusi payment source dari data preprocessing"""
+        if 'paymentSourceCode' in preprocessed_df.columns:
+            payment_counts = preprocessed_df['paymentSourceCode'].value_counts()
             
             fig, ax = plt.subplots(figsize=(8, 4))
             bars = ax.bar(payment_counts.index, payment_counts.values, 
@@ -367,11 +374,15 @@ class FraudDetectionDashboard:
             return fig
         return None
     
-    def create_merchant_fraud_chart(self, processed_df):
-        """Membuat chart merchant fraud dari data yang sudah diproses"""
-        if 'merchantId' in processed_df.columns:
-            # Gunakan data yang sudah diproses
-            merchant_fraud = processed_df[processed_df['predicted_fraud'] == 1]['merchantId'].value_counts().head(10)
+    def create_merchant_fraud_chart(self, preprocessed_df, processed_df):
+        """Membuat chart merchant fraud dari data preprocessing"""
+        if 'merchantId' in preprocessed_df.columns:
+            # Gabungkan preprocessing data dengan hasil prediksi
+            merchant_fraud_data = preprocessed_df.copy()
+            merchant_fraud_data['predicted_fraud'] = processed_df['predicted_fraud']
+            
+            # Hitung fraud per merchant
+            merchant_fraud = merchant_fraud_data[merchant_fraud_data['predicted_fraud'] == 1]['merchantId'].value_counts().head(10)
             
             if len(merchant_fraud) > 0:
                 fig, ax = plt.subplots(figsize=(8, 4))
@@ -390,42 +401,76 @@ class FraudDetectionDashboard:
         return None
     
     def create_lime_explanation(self, X_scaled, selected_features, model, idx_to_explain):
-        """Membuat LIME explanation"""
+        """Membuat LIME explanation - FIXED VERSION"""
         try:
-            # Check NaN & inf
-            if np.any(np.isnan(X_scaled)) or np.any(np.isinf(X_scaled)):
-                st.error("❌ X_scaled contains NaN or infinite values. Cannot generate LIME explanation.")
-                return None
-
-            # Remove constant columns
-            variance = X_scaled.var(axis=0)
-            non_constant_idx = variance > 0
-            X_scaled_filtered = X_scaled[:, non_constant_idx]
+            st.info("🔄 Generating LIME explanation...")
             
-            if X_scaled_filtered.shape[1] == 0:
-                st.error("❌ No features with variance > 0 for LIME.")
+            # Validasi input
+            if X_scaled is None or len(X_scaled) == 0:
+                st.error("❌ X_scaled is empty")
                 return None
                 
+            if idx_to_explain >= len(X_scaled):
+                st.error(f"❌ Index {idx_to_explain} out of range (max: {len(X_scaled)-1})")
+                return None
+            
+            # Check for NaN & inf values
+            if np.any(np.isnan(X_scaled)) or np.any(np.isinf(X_scaled)):
+                st.error("❌ X_scaled contains NaN or infinite values")
+                return None
+            
+            # Pastikan data training dan instance yang akan dijelaskan valid
+            training_data = X_scaled.copy()
+            instance_to_explain = X_scaled[idx_to_explain].copy()
+            
+            # Debug info
+            st.write(f"Training data shape: {training_data.shape}")
+            st.write(f"Instance shape: {instance_to_explain.shape}")
+            st.write(f"Features: {len(selected_features)}")
+            
+            # Buat explainer
             explainer = LimeTabularExplainer(
-                training_data=X_scaled,
+                training_data=training_data,
                 feature_names=selected_features,
                 class_names=["Non-Fraud", "Fraud"],
-                mode="classification", 
-                discretize_continuous=False
+                mode="classification",
+                discretize_continuous=True,  # Ubah ke True untuk stabilitas
+                random_state=42
             )
             
+            # Wrapper function untuk prediksi
+            def predict_fn(X):
+                try:
+                    return elm_predict_proba(X, model)
+                except Exception as e:
+                    st.error(f"Prediction error in LIME: {str(e)}")
+                    # Return default probabilities
+                    return np.array([[0.5, 0.5]] * len(X))
+            
+            # Test prediction function
+            test_pred = predict_fn(instance_to_explain.reshape(1, -1))
+            st.write(f"Test prediction shape: {test_pred.shape}")
+            st.write(f"Test prediction: {test_pred}")
+            
+            # Generate explanation
             exp = explainer.explain_instance(
-                data_row=X_scaled[idx_to_explain],
-                predict_fn=lambda x: elm_predict_proba(x, model)
+                data_row=instance_to_explain,
+                predict_fn=predict_fn,
+                num_features=min(10, len(selected_features)),  # Batasi jumlah fitur
+                num_samples=1000  # Reduce samples for faster computation
             )
             
+            # Create plot
             fig = exp.as_pyplot_figure()
             fig.set_size_inches(10, 6)
             plt.tight_layout()
+            
+            st.success("✅ LIME explanation generated successfully!")
             return fig
             
         except Exception as e:
-            st.error(f"LIME error: {str(e)}")
+            st.error(f"❌ LIME error: {str(e)}")
+            st.error("Please try with a different transaction or check your data.")
             return None
 
 def page_analysis():
@@ -496,18 +541,27 @@ def page_analysis():
     # Preprocessing
     with st.spinner("🔄 Processing data..."):
         try:
-            processed_df = preprocess_for_prediction(original_df)
+            # Preprocess data
+            preprocessed_df = preprocess_for_prediction(original_df)
+            
+            # Store preprocessed data in session (untuk visualisasi)
+            st.session_state.preprocessed_data = preprocessed_df
             
             # Validate and predict
-            if not dashboard.validate_data(processed_df, selected_features):
+            if not dashboard.validate_data(preprocessed_df, selected_features):
                 st.error("❌ Data validation failed")
                 return
             
-            df_with_pred, X_scaled = dashboard.perform_prediction(processed_df, model, scaler, selected_features)
+            # Perform prediction
+            df_with_pred, X_scaled = dashboard.perform_prediction(preprocessed_df, model, scaler, selected_features)
             
             if df_with_pred is None:
                 st.error("❌ Prediction failed")
                 return
+                
+            # Store selected features data (untuk preview)
+            selected_features_df = df_with_pred[selected_features + ['predicted_fraud', 'fraud_probability']]
+            st.session_state.selected_features_data = selected_features_df
             
         except Exception as e:
             st.error(f"❌ Processing error: {str(e)}")
@@ -519,12 +573,12 @@ def page_analysis():
     # Metrics
     total_fraud, fraud_rate = dashboard.create_compact_metrics(df_with_pred)
     
-    # Tabs untuk visualisasi (hanya 2 tab)
-    tab1, tab2 = st.tabs(["🔍 Details", "🧠 AI Explanation"])
+    # Tabs untuk visualisasi
+    tab1, tab2, tab3 = st.tabs(["📊 Visualizations", "🔍 Data Details", "🧠 AI Explanation"])
     
     with tab1:
-        # Overview metrics dan visualisasi
-        st.markdown("### 📊 Overview & Visualizations")
+        st.markdown("### 📊 Fraud Analysis Visualizations")
+        st.info("💡 Visualisasi menggunakan data setelah preprocessing (sebelum feature selection)")
         
         # Visualisasi dalam grid
         col1, col2 = st.columns(2)
@@ -537,7 +591,7 @@ def page_analysis():
         
         with col2:
             st.markdown("#### 💳 Payment Source Distribution")
-            fig_payment = dashboard.create_payment_source_chart(original_df)
+            fig_payment = dashboard.create_payment_source_chart(st.session_state.preprocessed_data)
             if fig_payment:
                 st.pyplot(fig_payment, use_container_width=True)
                 plt.close(fig_payment)
@@ -546,12 +600,41 @@ def page_analysis():
         
         # Merchant fraud chart (full width)
         st.markdown("#### 🏪 Top Fraud Merchants")
-        fig_merchant = dashboard.create_merchant_fraud_chart(df_with_pred)
+        fig_merchant = dashboard.create_merchant_fraud_chart(st.session_state.preprocessed_data, df_with_pred)
         if fig_merchant:
             st.pyplot(fig_merchant, use_container_width=True)
             plt.close(fig_merchant)
         else:
             st.info("No merchant fraud data available")
+            
+        # Fraud probability distribution
+        st.markdown("#### 📊 Fraud Probability Distribution")
+        fig, ax = plt.subplots(figsize=(10, 4))
+        
+        # Separate fraud and non-fraud probabilities
+        fraud_probs = df_with_pred[df_with_pred['predicted_fraud'] == 1]['fraud_probability']
+        non_fraud_probs = df_with_pred[df_with_pred['predicted_fraud'] == 0]['fraud_probability']
+        
+        # Plot histograms
+        ax.hist(non_fraud_probs, bins=30, alpha=0.7, color='#28a745', label='Non-Fraud', density=True)
+        ax.hist(fraud_probs, bins=30, alpha=0.7, color='#dc3545', label='Fraud', density=True)
+        
+        ax.set_xlabel('Fraud Probability')
+        ax.set_ylabel('Density')
+        ax.set_title('Distribution of Fraud Probabilities by Prediction')
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+        plt.tight_layout()
+        st.pyplot(fig, use_container_width=True)
+        plt.close(fig)
+    
+    with tab2:
+        st.markdown("### 🔍 Data Details")
+        st.info("💡 Preview data menggunakan fitur yang dipilih untuk modeling (setelah feature selection)")
+        
+        # Show preview of selected features data
+        st.markdown("#### 📋 Selected Features Preview")
+        st.dataframe(st.session_state.selected_features_data.head(20), use_container_width=True)
         
         # Fraud details
         st.markdown("---")
@@ -560,11 +643,15 @@ def page_analysis():
         if len(detected_fraud) > 0:
             st.markdown(f"### 🚨 Detected Fraud Transactions ({len(detected_fraud)} found)")
             
-            # Tampilkan data yang sudah diproses (bukan data original)
-            # Data ini sudah melalui preprocessing, encoding, normalisasi, prediksi
-            fraud_display = detected_fraud.copy()
+            # Show fraud data with original columns + predictions
+            fraud_with_original = original_df.copy()
+            fraud_with_original['predicted_fraud'] = df_with_pred['predicted_fraud']
+            fraud_with_original['fraud_probability'] = df_with_pred['fraud_probability']
             
-            # Show fraud data (data yang sudah diproses)
+            # Filter hanya yang fraud
+            fraud_display = fraud_with_original[fraud_with_original['predicted_fraud'] == 1]
+            
+            # Show fraud data
             st.dataframe(fraud_display, use_container_width=True)
             
             # Download button
@@ -577,77 +664,60 @@ def page_analysis():
                 use_container_width=True
             )
             
-            # Show probability distribution
-            st.markdown("#### 📊 Fraud Probability Distribution")
-            fig, ax = plt.subplots(figsize=(8, 4))
-            ax.hist(df_with_pred['fraud_probability'], bins=30, alpha=0.7, color='#2E86AB')
-            ax.set_xlabel('Fraud Probability')
-            ax.set_ylabel('Frequency')
-            ax.set_title('Distribution of Fraud Probabilities')
-            ax.grid(True, alpha=0.3)
-            plt.tight_layout()
-            st.pyplot(fig, use_container_width=True)
-            plt.close(fig)
-            
         else:
             st.success("🎉 No fraud transactions detected!")
     
-    with tab2:
+    with tab3:
         st.markdown("### 🧠 AI Explanation (LIME)")
         st.markdown("Select a transaction to see why the AI made its prediction:")
         
         if len(df_with_pred) > 0:
+            # Select transaction dengan lebih banyak opsi
+            max_display = min(100, len(df_with_pred))
+            
+            # Filter options berdasarkan prediction
+            fraud_indices = df_with_pred[df_with_pred['predicted_fraud'] == 1].index.tolist()
+            non_fraud_indices = df_with_pred[df_with_pred['predicted_fraud'] == 0].index.tolist()
+            
+            # Selection method
+            explanation_method = st.radio(
+                "Choose explanation method:",
+                ["Show All", "Show Only Fraud", "Show Only Non-Fraud"]
+            )
+            
+            if explanation_method == "Show Only Fraud":
+                available_indices = fraud_indices[:max_display]
+            elif explanation_method == "Show Only Non-Fraud":
+                available_indices = non_fraud_indices[:max_display]
+            else:
+                available_indices = list(range(min(max_display, len(df_with_pred))))
+            
+            if not available_indices:
+                st.warning("⚠️ No transactions available for the selected filter")
+                return
+            
             # Select transaction
-            max_display = min(50, len(df_with_pred))
             idx_to_explain = st.selectbox(
                 "Choose transaction to explain:",
-                range(max_display),
-                format_func=lambda x: f"Transaction {x} - {'FRAUD' if df_with_pred.iloc[x]['predicted_fraud'] == 1 else 'NON-FRAUD'} (Prob: {df_with_pred.iloc[x]['fraud_probability']:.3f})"
+                available_indices,
+                format_func=lambda x: f"Transaction {x} - {'🚨 FRAUD' if df_with_pred.iloc[x]['predicted_fraud'] == 1 else '✅ NON-FRAUD'} (Prob: {df_with_pred.iloc[x]['fraud_probability']:.4f})"
             )
             
             # Show transaction details
             st.markdown("#### Transaction Details:")
             selected_transaction = df_with_pred.iloc[idx_to_explain]
+            selected_original = original_df.iloc[idx_to_explain]
             
             col1, col2 = st.columns(2)
             with col1:
                 st.write(f"**Prediction:** {'🚨 FRAUD' if selected_transaction['predicted_fraud'] == 1 else '✅ NON-FRAUD'}")
                 st.write(f"**Probability:** {selected_transaction['fraud_probability']:.4f}")
             with col2:
-                if 'merchantId' in selected_transaction:
-                    st.write(f"**Merchant ID:** {selected_transaction['merchantId']}")
-                if 'paymentSourceCode' in selected_transaction:
-                    st.write(f"**Payment Source:** {selected_transaction['paymentSourceCode']}")
-                elif 'trx_hour' in selected_transaction:
-                    st.write(f"**Transaction Hour:** {selected_transaction['trx_hour']}")
+                if 'merchantId' in selected_original:
+                    st.write(f"**Merchant ID:** {selected_original['merchantId']}")
+                if 'paymentSourceCode' in selected_original:
+                    st.write(f"**Payment Source:** {selected_original['paymentSourceCode']}")
             
-            # Generate LIME explanation
-            if st.button("🔍 Generate AI Explanation", key="lime_btn", use_container_width=True):
-                with st.spinner("Generating AI explanation..."):
-                    lime_fig = dashboard.create_lime_explanation(
-                        X_scaled, selected_features, model, idx_to_explain
-                    )
-                    if lime_fig:
-                        st.pyplot(lime_fig, use_container_width=True)
-                        plt.close(lime_fig)
-                        
-                        st.info("""
-                        **How to read this explanation:**
-                        - 🟢 Green bars: Features that contribute to NON-FRAUD prediction
-                        - 🔴 Red bars: Features that contribute to FRAUD prediction
-                        - Longer bars = stronger influence on the prediction
-                        """)
-        else:
-            st.info("No transactions available for explanation")
-
-# Main navigation logic
-def main():
-    """Main function untuk navigasi antar halaman"""
-    
-    if st.session_state.current_page == 'upload':
-        page_upload()
-    elif st.session_state.current_page == 'analysis':
-        page_analysis()
-
-if __name__ == "__main__":
-    main()
+            # Show some feature values
+            st.markdown("#### Key Features:")
+            feature_sample = selected_features[:5]  # Show first 5 features
