@@ -166,12 +166,6 @@ uploaded_file = st.file_uploader(
     label_visibility="collapsed"
 )
 
-# Browse files button
-col1, col2, col3 = st.columns([1, 1, 1])
-with col2:
-    if st.button("📁 Browse files", key="browse_btn"):
-        st.info("💡 Please use the drag & drop area above to select your CSV file")
-
 st.markdown('</div>', unsafe_allow_html=True)
 
 # Show file info if uploaded
