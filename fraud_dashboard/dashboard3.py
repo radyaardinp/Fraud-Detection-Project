@@ -20,7 +20,7 @@ if 'show_lime' not in st.session_state:
 if 'lime_idx' not in st.session_state:
     st.session_state.lime_idx = None
     
-===== HALAMAN 1 ========
+#===== HALAMAN 1 ========
 # Page configuration
 st.set_page_config(
     page_title="🛡️Fraud Detection System Dashboard",
@@ -194,7 +194,7 @@ if uploaded_file is not None:
         st.error(f"❌ Error reading file: {str(e)}")
         st.info("Please ensure your CSV file is properly formatted.")
 
-==================== HALAMAN 2 ==============================
+#==================== HALAMAN 2 ==============================
 
 def page_analysis():
     from joblib import load
