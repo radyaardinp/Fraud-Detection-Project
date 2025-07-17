@@ -30,7 +30,7 @@ st.markdown("""
         font-weight: 700;
         color: #2E86AB;
         text-align: center;
-        margin-bottom: 0.5rem;
+        margin-bottom: 0.2rem;
         padding: 1rem 0;
     }
     
@@ -39,7 +39,7 @@ st.markdown("""
         font-weight: 500;
         color: #666;
         text-align: center;
-        margin-bottom: 1rem;
+        margin-bottom: 0.5 rem auto;
     }
     
     .description-text {
@@ -47,7 +47,7 @@ st.markdown("""
         color: #555;
         text-align: center;
         line-height: 1.6;
-        margin: 2rem auto;
+        margin: 1rem auto;
         max-width: 800px;
         padding: 0 2rem;
     }
