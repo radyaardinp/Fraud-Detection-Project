@@ -240,7 +240,6 @@ def page_upload():
     st.markdown("""
     <div class="footer">
         <p>📊 Fraud Detection System | Powered by Extreme Learning Machine & LIME</p>
-        <p>Upload your transaction data to begin fraud detection analysis</p>
     </div>
     """, unsafe_allow_html=True)
 
