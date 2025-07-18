@@ -363,7 +363,7 @@ class FraudDetectionDashboard:
     
     def create_fraud_pie_chart(self, df):
         """Membuat pie chart"""
-        fraud_counts = df['predicted_fraud'].value_counts().rename({0: 'Non-Fraud', 1: 'Fraud'})
+        fraud_counts = df['predicted_fraud'].value_counts().rename({1: 'Non-Fraud', 0: 'Fraud'})
         
         fig, ax = plt.subplots(figsize=(4, 3))
         colors = ['#28a745', '#dc3545']
