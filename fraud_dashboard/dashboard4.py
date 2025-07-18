@@ -216,9 +216,7 @@ def page_upload():
             st.markdown("### 📊 Column Information")
             col_info = pd.DataFrame({
                 'Column': df.columns,
-                'Data Type': df.dtypes,
-                'Non-Null Count': df.count(),
-                'Null Count': df.isnull().sum()})
+                'Data Type': df.dtypes)
             # Buat keterangan manual untuk setiap kolom
             manual_descriptions = {
                 'id': 'Identitas unik transaksi',
