@@ -332,6 +332,7 @@ class FraudDetectionDashboard:
             
             # Buat copy untuk hasil prediksi
             result_df = df.copy()
+            
             result_df['predicted_fraud'] = y_pred
             result_df['fraud_probability'] = y_prob
             
@@ -605,12 +606,9 @@ def page_analysis():
         
         # 1. TAMPILKAN DATAFRAME UTAMA DULU (preprocessing + feature selection + prediction)
         st.markdown("#### 📊 Complete Analysis Results")
-        st.info("💡 Data setelah preprocessing, feature selection, dan prediksi fraud")
         
         # Gabungkan data original dengan hasil prediksi untuk tampilan yang lebih lengkap
-        complete_df = original_df.copy()
-        complete_df['predicted_fraud'] = df_with_pred['predicted_fraud']
-        complete_df['fraud_probability'] = df_with_pred['fraud_probability']
+        complete_df = preprocessed_df.copy()
         
         # Tampilkan dataframe utama
         st.dataframe(complete_df, use_container_width=True)
