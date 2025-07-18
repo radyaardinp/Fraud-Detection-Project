@@ -721,3 +721,65 @@ def page_analysis():
             # Show some feature values
             st.markdown("#### Key Features:")
             feature_sample = selected_features[:5]  # Show first 5 features
+            for feature in feature_sample:
+                if feature in selected_transaction:
+                    st.write(f"**{feature}:** {selected_transaction[feature]}")
+            
+            # Generate LIME explanation
+            if st.button("🔍 Generate AI Explanation", key="lime_btn", use_container_width=True):
+                with st.spinner("Generating AI explanation..."):
+                    lime_fig = dashboard.create_lime_explanation(
+                        X_scaled, selected_features, model, idx_to_explain
+                    )
+                    if lime_fig:
+                        st.pyplot(lime_fig, use_container_width=True)
+                        plt.close(lime_fig)
+                        
+                        st.info("""
+                        **How to read this explanation:**
+                        - 🟢 Green bars: Features that contribute to NON-FRAUD prediction
+                        - 🔴 Red bars: Features that contribute to FRAUD prediction
+                        - Longer bars = stronger influence on the prediction
+                        - Numbers show the actual impact values
+                        """)
+                        
+                        # Additional explanation text
+                        prediction_text = "FRAUD" if selected_transaction['predicted_fraud'] == 1 else "NON-FRAUD"
+                        confidence = selected_transaction['fraud_probability']
+                        
+                        st.markdown(f"""
+                        **Summary:**
+                        - **Final Prediction:** {prediction_text}
+                        - **Confidence Score:** {confidence:.4f}
+                        - **Interpretation:** The model predicted this transaction as {prediction_text} 
+                          with {confidence*100:.2f}% confidence based on the feature contributions shown above.
+                        """)
+                    else:
+                        st.error("❌ Failed to generate explanation. Please try another transaction.")
+        else:
+            st.info("No transactions available for explanation")
+
+# Main navigation logic
+def main():
+    """Main function untuk navigasi antar halaman"""
+    
+    # Sidebar untuk debug info (optional)
+    with st.sidebar:
+        st.markdown("### Debug Info")
+        st.write(f"Current page: {st.session_state.current_page}")
+        st.write(f"Data uploaded: {st.session_state.uploaded_data is not None}")
+        st.write(f"Preprocessed data: {st.session_state.preprocessed_data is not None}")
+        st.write(f"Selected features data: {st.session_state.selected_features_data is not None}")
+        
+        if st.button("🔄 Reset Session"):
+            for key in list(st.session_state.keys()):
+                del st.session_state[key]
+            st.rerun()
+    
+    if st.session_state.current_page == 'upload':
+        page_upload()
+    elif st.session_state.current_page == 'analysis':
+        page_analysis()
+
+if __name__ == "__main__":
+    main()
