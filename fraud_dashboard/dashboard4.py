@@ -608,7 +608,7 @@ def page_analysis():
         st.markdown("#### 📊 Complete Analysis Results")
         
         # Gabungkan data original dengan hasil prediksi untuk tampilan yang lebih lengkap
-        complete_df = selected_features_df.copy()
+        complete_df = df_with_pred.copy()
         
         # Tampilkan dataframe utama
         st.dataframe(complete_df, use_container_width=True)
