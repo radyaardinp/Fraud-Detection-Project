@@ -659,33 +659,6 @@ def page_analysis():
         st.markdown("---")
         detected_fraud = df_with_pred[df_with_pred['predicted_fraud'] == 1]
         
-        if len(detected_fraud) > 0:
-            st.markdown(f"### 🚨 Detected Fraud Transactions ({len(detected_fraud)} found)")
-            
-            # Show fraud data with original columns + predictions
-            fraud_with_original = original_df.copy()
-            fraud_with_original['predicted_fraud'] = df_with_pred['predicted_fraud']
-            fraud_with_original['fraud_probability'] = df_with_pred['fraud_probability']
-            
-            # Filter hanya yang fraud
-            fraud_display = fraud_with_original[fraud_with_original['predicted_fraud'] == 1]
-            
-            # Show fraud data
-            st.dataframe(fraud_display, use_container_width=True)
-            
-            # Download button for fraud data
-            csv_fraud = fraud_display.to_csv(index=False)
-            st.download_button(
-                label="📥 Download Fraud Data Only",
-                data=csv_fraud,
-                file_name='fraud_transactions.csv',
-                mime='text/csv',
-                use_container_width=True
-            )
-            
-        else:
-            st.success("🎉 No fraud transactions detected!")
-    
     with tab2:
         st.markdown("### 🧠 AI Explanation (LIME)")
         st.markdown("Select a transaction to see why the AI made its prediction:")
