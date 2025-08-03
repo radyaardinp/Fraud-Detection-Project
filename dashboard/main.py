@@ -1456,14 +1456,14 @@ def main():
                     }
                 }
                 
-                import csv
-                export_csv = csv.dumps(export_data, indent=2)
+                import json
+                export_json = json.dumps(export_data, indent=2)
                 
                 st.download_button(
                     label="💾 Download Session Data",
-                    data=export_csv,
-                    file_name=f"fraud_detection_session_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                    mime="application/csv"
+                    data=export_json,
+                    file_name=f"fraud_detection_session_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.json",
+                    mime="application/json"
                 )
     
     # Main content area
