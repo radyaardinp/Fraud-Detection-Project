@@ -946,13 +946,13 @@ def page_analysis():
             test_total = len(lime_data['y_test'])
             fraud_rate = (test_fraud_count / test_total) * 100
             
-            st.info(textwrap.dedent(f"""
+            st.info(textwrap.dedent(f""""
             **Test Set Distribution:**
             - Fraud Cases: {test_fraud_count:,}
             - Non-Fraud Cases: {test_total - test_fraud_count:,}
             - Fraud Rate: {fraud_rate:.2f}%
             - Balance Ratio: {(test_total - test_fraud_count) / max(test_fraud_count, 1):.1f}:1
-            """))
+            """"))
         
         # Advanced resampling impact
         st.markdown("#### 🔄 Advanced Resampling Impact")
