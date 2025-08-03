@@ -888,8 +888,8 @@ def page_analysis():
             with col1:
                 st.info(f"""
                 **True Predictions:**
-                - True Negatives (Non-Fraud → Non-Fraud): {tn:,}
-                - True Positives (Fraud → Fraud): {tp:,}
+                - True Negatives (Non-Fraud -> Non-Fraud): {tn:,}
+                - True Positives (Fraud -> Fraud): {tp:,}
                 - **Total Correct**: {tn + tp:,}
                 """)
             
