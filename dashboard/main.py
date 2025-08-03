@@ -896,8 +896,8 @@ def page_analysis():
             with col2:
                 st.warning(f"""
                 **False Predictions:**
-                - False Positives (Non-Fraud → Fraud): {fp:,}
-                - False Negatives (Fraud → Non-Fraud): {fn:,}
+                - False Positives (Non-Fraud -> Fraud): {fp:,}
+                - False Negatives (Fraud -> Non-Fraud): {fn:,}
                 - **Total Incorrect**: {fp + fn:,}
                 """)
         
