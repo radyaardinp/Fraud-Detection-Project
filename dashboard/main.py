@@ -757,7 +757,7 @@ if __name__ == "__main__":
             **Model Configuration:**
             - Advanced Resampling: {st.session_state.selected_resampling}
             - Training: {results['model_results']['mode']}
-            - LIME Integration: ✅ Ready
+            - LIME Integration:  Ready
             """)
         
         # Navigation buttons
