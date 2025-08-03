@@ -10,6 +10,7 @@ class ELMModel:
         self.W = None
         self.b = None 
         self.beta = None
+        self.activation_type = None
         self.is_trained = False
         np.random.seed(random_state)
     
@@ -46,6 +47,7 @@ class ELMModel:
                    threshold: float = 0.5) -> Dict:   
         # Train model
         self.W, self.b, self.beta = self.elm_train(X_train, y_train, hidden_neurons, activation)
+        self.activation_type = activation  # Store activation type
         self.is_trained = True
         
         # Predict
@@ -66,7 +68,15 @@ class ELMModel:
                 'f1_score': round(f1_score(y_test, y_pred, average='weighted', zero_division=0), 4)
             },
             'confusion_matrix': confusion_matrix(y_test, y_pred).tolist(),
-            'classification_report': classification_report(y_test, y_pred, output_dict=True, zero_division=0)
+            'classification_report': classification_report(y_test, y_pred, output_dict=True, zero_division=0),
+            # NEW: Add model weights untuk LIME
+            'model_weights': {
+                'input_weights': self.W,
+                'biases': self.b,
+                'output_weights': self.beta,
+                'activation': activation,
+                'threshold': threshold
+            }
         }
         
         return results
@@ -102,6 +112,7 @@ class ELMModel:
             hidden_neurons=best_params['hidden_neurons'],
             activation=best_params['activation']
         )
+        self.activation_type = best_params['activation']  # Store activation type
         self.is_trained = True
         
         # Final prediction dengan parameter terbaik
@@ -123,13 +134,21 @@ class ELMModel:
                 'f1_score': round(f1_score(y_test, y_pred_best, average='weighted', zero_division=0), 4)
             },
             'confusion_matrix': confusion_matrix(y_test, y_pred_best).tolist(),
-            'classification_report': classification_report(y_test, y_pred_best, output_dict=True, zero_division=0)
+            'classification_report': classification_report(y_test, y_pred_best, output_dict=True, zero_division=0),
+            # NEW: Add model weights untuk LIME
+            'model_weights': {
+                'input_weights': self.W,
+                'biases': self.b,
+                'output_weights': self.beta,
+                'activation': best_params['activation'],
+                'threshold': best_params['threshold']
+            }
         }
         
         return results
 
 
-# Main functions untuk dashboard
+# Main functions untuk dashboard (unchanged)
 def train_elm_manual(X_train: np.ndarray, y_train: np.ndarray,
                     X_test: np.ndarray, y_test: np.ndarray,
                     hidden_neurons: int, activation: str, threshold: float,
