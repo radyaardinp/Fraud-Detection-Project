@@ -1,6 +1,6 @@
 import numpy as np
 import optuna
-from typing import Dict, Tuple
+from typing import Tuple
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, precision_score, recall_score, f1_score
 
 
@@ -44,7 +44,7 @@ class ELMModel:
     def train_model(self, X_train: np.ndarray, y_train: np.ndarray, 
                    X_test: np.ndarray, y_test: np.ndarray,
                    hidden_neurons: int = 100, activation: str = 'sigmoid', 
-                   threshold: float = 0.5) -> Dict:   
+                   threshold: float = 0.5):   
         # Train model
         self.W, self.b, self.beta = self.elm_train(X_train, y_train, hidden_neurons, activation)
         self.activation_type = activation  # Store activation type
@@ -83,7 +83,7 @@ class ELMModel:
     
     def optimize_parameters(self, X_train: np.ndarray, y_train: np.ndarray,
                           X_test: np.ndarray, y_test: np.ndarray,
-                          n_trials: int = 50) -> Dict:
+                          n_trials: int = 50):
         # Define objective function sesuai code Colab
         def objective(trial):
             activation = trial.suggest_categorical('activation', ['sigmoid', 'tanh', 'relu'])
@@ -152,7 +152,7 @@ class ELMModel:
 def train_elm_manual(X_train: np.ndarray, y_train: np.ndarray,
                     X_test: np.ndarray, y_test: np.ndarray,
                     hidden_neurons: int, activation: str, threshold: float,
-                    random_state: int = 42) -> Dict:
+                    random_state: int = 42):
     elm = ELMModel(random_state=random_state)
     results = elm.train_model(X_train, y_train, X_test, y_test, 
                              hidden_neurons, activation, threshold)
@@ -161,13 +161,13 @@ def train_elm_manual(X_train: np.ndarray, y_train: np.ndarray,
 
 def optimize_elm_auto(X_train: np.ndarray, y_train: np.ndarray,
                      X_test: np.ndarray, y_test: np.ndarray,
-                     n_trials: int = 50, random_state: int = 42) -> Dict:
+                     n_trials: int = 50, random_state: int = 42):
     elm = ELMModel(random_state=random_state)
     results = elm.optimize_parameters(X_train, y_train, X_test, y_test, n_trials)
     return results
 
 
-def get_activation_options() -> Dict:
+def get_activation_options():
     """Get activation function options untuk dropdown"""
     return {
         'sigmoid': 'Sigmoid (0,1)',
