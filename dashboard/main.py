@@ -14,6 +14,57 @@ from predict_pipeline import run_complete_pipeline, validate_pipeline_results
 from lime_explainer import create_lime_explainer_from_pipeline, explain_test_instance, explain_custom_instance
 from integration_test import test_complete_integration, print_pipeline_summary
 
+# Tambahan untuk handle compatibility issues
+import sys
+import importlib
+
+def check_library_compatibility():
+    """Check dan handle library compatibility issues"""
+    try:
+        import sklearn
+        import imblearn
+        
+        sklearn_version = sklearn.__version__
+        imblearn_version = imblearn.__version__
+        
+        # Log versions for debugging
+        print(f"Scikit-learn version: {sklearn_version}")
+        print(f"Imbalanced-learn version: {imblearn_version}")
+        
+        # Check for known compatibility issues
+        sklearn_major = int(sklearn_version.split('.')[0])
+        sklearn_minor = int(sklearn_version.split('.')[1])
+        
+        if sklearn_major >= 1 and sklearn_minor >= 2:
+            st.warning("⚠️ Detected newer scikit-learn version. Some resampling methods may have compatibility issues.")
+            return False
+        
+        return True
+        
+    except Exception as e:
+        st.error(f"Library compatibility check failed: {str(e)}")
+        return False
+
+# Safe resampling methods that work across versions
+SAFE_RESAMPLING_METHODS = {
+    'SMOTE': 'Synthetic Minority Oversampling Technique (Most Stable)',
+    'RandomOverSampler': 'Random Oversampling (Very Safe)',
+    'RandomUnderSampler': 'Random Undersampling (Safe)',
+    'ADASYN': 'Adaptive Synthetic Sampling (Generally Safe)'
+}
+
+# All available methods (may have compatibility issues)
+ALL_RESAMPLING_METHODS = {
+    'SMOTE': 'Synthetic Minority Oversampling Technique',
+    'ADASYN': 'Adaptive Synthetic Sampling',
+    'RandomOverSampler': 'Random Oversampling',
+    'RandomUnderSampler': 'Random Undersampling',
+    'ENN': 'Edited Nearest Neighbours',
+    'TomekLinks': 'Tomek Links',
+    'SMOTEENN': 'SMOTE + Edited Nearest Neighbours',
+    'SMOTETomek': 'SMOTE + Tomek Links'
+}
+
 # Initialize session state
 def init_session_state():
     """Initialize semua session state variables"""
@@ -23,11 +74,13 @@ def init_session_state():
         'pipeline_results': None,
         'lime_explainer': None,
         'processing_complete': False,
-        'selected_resampling': 'SMOTE',
+        'selected_resampling': 'SMOTE',  # Default ke metode paling aman
         'selected_training_mode': 'manual',
         'selected_hidden_neurons': 100,
         'selected_activation': 'sigmoid',
-        'selected_threshold': 0.5
+        'selected_threshold': 0.5,
+        'use_safe_mode': True,  # Default safe mode
+        'compatibility_checked': False
     }
     
     for key, default_value in defaults.items():
@@ -101,6 +154,14 @@ st.markdown("""
         margin: 1rem 0;
     }
     
+    .compatibility-box {
+        background: linear-gradient(90deg, #e2e3e5 0%, #d1ecf1 100%);
+        border: 1px solid #bee5eb;
+        border-radius: 10px;
+        padding: 1rem;
+        margin: 1rem 0;
+    }
+    
     .stMetric {
         background-color: #f8f9fa;
         padding: 1rem;
@@ -158,14 +219,48 @@ def show_step_indicator(current_step):
     
     st.markdown(step_html, unsafe_allow_html=True)
 
+def show_compatibility_notice():
+    """Show compatibility notice and options"""
+    if not st.session_state.compatibility_checked:
+        st.markdown("""
+        <div class="compatibility-box">
+        <h4>🔧 Library Compatibility Notice</h4>
+        <p>To ensure stable operation, we recommend using <strong>Safe Mode</strong> which uses 
+        only the most compatible resampling methods across different library versions.</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            if st.button("✅ Use Safe Mode (Recommended)", key="safe_mode_btn"):
+                st.session_state.use_safe_mode = True
+                st.session_state.compatibility_checked = True
+                st.success("Safe mode activated! Using compatible resampling methods.")
+                st.rerun()
+        
+        with col2:
+            if st.button("⚡ Use All Methods (Advanced)", key="all_methods_btn"):
+                st.session_state.use_safe_mode = False
+                st.session_state.compatibility_checked = True
+                st.warning("Advanced mode activated. Some methods may have compatibility issues.")
+                st.rerun()
+        
+        return False  # Don't proceed until user chooses
+    return True  # Proceed normally
+
 def page_upload():
-    """Page 1: Upload dan Preview Data - IMPROVED VERSION"""
+    """Page 1: Upload dan Preview Data - IMPROVED VERSION with Compatibility Check"""
     
     show_step_indicator("upload")
     
     # Main header
     st.markdown('<div class="main-header">🛡️ Fraud Detection System Dashboard</div>', unsafe_allow_html=True)
     st.markdown('<div class="sub-header">Advanced AI-Powered Transaction Analysis</div>', unsafe_allow_html=True)
+
+    # Compatibility check
+    if not show_compatibility_notice():
+        return
 
     # Description
     st.markdown("""
@@ -300,14 +395,30 @@ def page_upload():
             st.markdown("---")
             st.markdown("### ⚙️ Analysis Configuration")
             
+            # Show current mode
+            if st.session_state.use_safe_mode:
+                st.info("🛡️ **Safe Mode Active**: Using compatible resampling methods for stable operation.")
+                available_methods = SAFE_RESAMPLING_METHODS
+            else:
+                st.warning("⚡ **Advanced Mode Active**: All methods available (may have compatibility issues).")
+                available_methods = ALL_RESAMPLING_METHODS
+            
             col1, col2 = st.columns(2)
             
             with col1:
                 st.markdown("#### Model Configuration")
+                
+                # Get current resampling method or set default
+                current_method = st.session_state.selected_resampling
+                if current_method not in available_methods:
+                    current_method = list(available_methods.keys())[0]
+                    st.session_state.selected_resampling = current_method
+                
                 st.session_state.selected_resampling = st.selectbox(
                     "Resampling Method",
-                    options=['SMOTE', 'ADASYN', 'ENN', 'TomekLinks', 'SMOTEENN', 'SMOTETomek'],
-                    index=0,
+                    options=list(available_methods.keys()),
+                    index=list(available_methods.keys()).index(current_method),
+                    format_func=lambda x: f"{x} - {available_methods[x]}",
                     help="Choose resampling method to handle imbalanced data"
                 )
                 
@@ -348,10 +459,17 @@ def page_upload():
                 else:
                     st.info("Optuna will automatically optimize: hidden_neurons, activation, threshold")
 
-            # Start Analysis button
+            # Mode switching
             st.markdown("---")
-            col1, col2, col3 = st.columns([1, 1, 1])
+            col1, col2, col3 = st.columns(3)
             
+            with col1:
+                if st.button("🔄 Switch Mode", key="switch_mode_btn"):
+                    st.session_state.use_safe_mode = not st.session_state.use_safe_mode
+                    st.session_state.compatibility_checked = False
+                    st.rerun()
+            
+            # Start Analysis button
             with col2:
                 if st.button("🚀 Start Advanced Analysis", key="analysis_btn", use_container_width=True):
                     # Validate minimum requirements
@@ -377,7 +495,7 @@ def page_upload():
     """, unsafe_allow_html=True)
 
 def page_process():
-    """Page 2: Processing dengan integrasi penuh"""
+    """Page 2: Processing dengan error handling yang lebih baik"""
     
     show_step_indicator("process")
     
@@ -408,8 +526,10 @@ def page_process():
     config_col1, config_col2 = st.columns(2)
     
     with config_col1:
+        mode_text = "🛡️ Safe Mode" if st.session_state.use_safe_mode else "⚡ Advanced Mode"
         st.info(f"""
         **Model Configuration:**
+        - Mode: {mode_text}
         - Resampling: {st.session_state.selected_resampling}
         - Training Mode: {st.session_state.selected_training_mode}
         """)
@@ -425,6 +545,10 @@ def page_process():
         else:
             st.info("**Auto-Optimization:**\nOptuna will find best parameters")
     
+    # Compatibility warning
+    if not st.session_state.use_safe_mode:
+        st.warning("⚠️ Advanced mode may encounter compatibility issues with some resampling methods.")
+    
     # Process button
     if not st.session_state.processing_complete:
         st.markdown("---")
@@ -433,6 +557,7 @@ def page_process():
             # Progress tracking
             progress_bar = st.progress(0)
             status_text = st.empty()
+            error_container = st.empty()
             
             try:
                 # Step 1: Preprocessing
@@ -467,26 +592,105 @@ def page_process():
                         'threshold': st.session_state.selected_threshold
                     })
                 
-                pipeline_results = run_complete_pipeline(**pipeline_params)
+                # Run pipeline with error handling
+                try:
+                    pipeline_results = run_complete_pipeline(**pipeline_params)
+                except Exception as pipeline_error:
+                    error_msg = str(pipeline_error)
+                    
+                    # Handle specific compatibility errors
+                    if "'TomekLinks' object has no attribute '_validate_data'" in error_msg:
+                        error_container.error("""
+                        ❌ **Compatibility Error with TomekLinks**
+                        
+                        This error occurs due to version incompatibility between scikit-learn and imbalanced-learn.
+                        
+                        **Solutions:**
+                        1. Switch to Safe Mode (recommended)
+                        2. Try a different resampling method like SMOTE or RandomOverSampler
+                        """)
+                        
+                        if st.button("🛡️ Switch to Safe Mode", key="auto_safe_mode"):
+                            st.session_state.use_safe_mode = True
+                            st.session_state.selected_resampling = 'SMOTE'
+                            st.session_state.compatibility_checked = False
+                            st.rerun()
+                        
+                        return
+                    
+                    elif "object has no attribute '_validate_data'" in error_msg:
+                        error_container.error(f"""
+                        ❌ **Library Compatibility Error**
+                        
+                        The selected resampling method ({st.session_state.selected_resampling}) 
+                        has compatibility issues with your current library versions.
+                        
+                        **Recommended Solutions:**
+                        1. Use Safe Mode with compatible methods
+                        2. Try SMOTE or RandomOverSampler instead
+                        """)
+                        
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            if st.button("🛡️ Use Safe Mode", key="error_safe_mode"):
+                                st.session_state.use_safe_mode = True
+                                st.session_state.selected_resampling = 'SMOTE'
+                                st.rerun()
+                        
+                        with col2:
+                            if st.button("🔄 Try SMOTE", key="error_smote"):
+                                st.session_state.selected_resampling = 'SMOTE'
+                                st.rerun()
+                        
+                        return
+                    
+                    else:
+                        # General error handling
+                        error_container.error(f"❌ Pipeline processing failed: {error_msg}")
+                        
+                        # Offer fallback options
+                        st.markdown("**Troubleshooting Options:**")
+                        col1, col2, col3 = st.columns(3)
+                        
+                        with col1:
+                            if st.button("🛡️ Try Safe Mode", key="fallback_safe"):
+                                st.session_state.use_safe_mode = True
+                                st.session_state.selected_resampling = 'SMOTE'
+                                st.rerun()
+                        
+                        with col2:
+                            if st.button("🔄 Use RandomOverSampler", key="fallback_random"):
+                                st.session_state.selected_resampling = 'RandomOverSampler'
+                                st.rerun()
+                        
+                        with col3:
+                            if st.button("📋 Show Details", key="show_error"):
+                                st.code(error_msg)
+                        
+                        return
                 
                 # Step 5: LIME Integration
                 status_text.text("Step 5/5: Setting up LIME explainer...")
                 progress_bar.progress(1.0)
                 
                 if pipeline_results is None:
-                    st.error("❌ Pipeline processing failed!")
+                    error_container.error("❌ Pipeline processing failed - no results returned!")
                     return
                 
                 # Validate results
                 is_valid, error_msg = validate_pipeline_results(pipeline_results)
                 if not is_valid:
-                    st.error(f"❌ Pipeline validation failed: {error_msg}")
+                    error_container.error(f"❌ Pipeline validation failed: {error_msg}")
                     return
                 
                 # Create LIME explainer
-                lime_explainer = create_lime_explainer_from_pipeline(pipeline_results)
-                if lime_explainer is None:
-                    st.error("❌ Failed to create LIME explainer!")
+                try:
+                    lime_explainer = create_lime_explainer_from_pipeline(pipeline_results)
+                    if lime_explainer is None:
+                        error_container.error("❌ Failed to create LIME explainer!")
+                        return
+                except Exception as lime_error:
+                    error_container.error(f"❌ LIME explainer creation failed: {str(lime_error)}")
                     return
                 
                 # Store results
@@ -497,6 +701,7 @@ def page_process():
                 # Clear progress
                 progress_bar.empty()
                 status_text.empty()
+                error_container.empty()
                 
                 st.success("✅ Processing completed successfully!")
                 st.rerun()
@@ -504,7 +709,17 @@ def page_process():
             except Exception as e:
                 progress_bar.empty()
                 status_text.empty()
-                st.error(f"❌ Processing failed: {str(e)}")
+                error_container.error(f"❌ Unexpected error during processing: {str(e)}")
+                
+                # Debug information
+                with st.expander("🔍 Debug Information"):
+                    st.code(f"""
+                    Error type: {type(e).__name__}
+                    Error message: {str(e)}
+                    Selected resampling: {st.session_state.selected_resampling}
+                    Safe mode: {st.session_state.use_safe_mode}
+                    """)
+                
                 return
     
     # Show results if processing is complete
@@ -542,10 +757,12 @@ def page_process():
             """)
         
         with col2:
+            mode_text = "🛡️ Safe Mode" if st.session_state.use_safe_mode else "⚡ Advanced Mode"
             st.info(f"""
             **Model Configuration:**
-            - Mode: {results['model_results']['mode']}
+            - Mode: {mode_text}
             - Resampling: {st.session_state.selected_resampling}
+            - Training: {results['model_results']['mode']}
             - Integration: ✅ LIME Ready
             """)
         
@@ -587,11 +804,14 @@ def page_process():
         with col1:
             if st.button("🧪 Run Integration Test", key="test_btn"):
                 with st.spinner("Running integration test..."):
-                    test_success = test_complete_integration(df)
-                    if test_success:
-                        st.success("✅ Integration test passed!")
-                    else:
-                        st.error("❌ Integration test failed!")
+                    try:
+                        test_success = test_complete_integration(df)
+                        if test_success:
+                            st.success("✅ Integration test passed!")
+                        else:
+                            st.error("❌ Integration test failed!")
+                    except Exception as test_error:
+                        st.error(f"❌ Integration test error: {str(test_error)}")
         
         with col2:
             if st.button("📊 View Analysis", key="analysis_btn", use_container_width=True):
@@ -666,6 +886,10 @@ def page_analysis():
         st.info("👍 Good model performance. Acceptable for fraud detection.")
     else:
         st.warning("⚠️ Model performance could be improved. Consider adjusting parameters.")
+    
+    # Configuration info
+    mode_text = "🛡️ Safe Mode" if st.session_state.use_safe_mode else "⚡ Advanced Mode"
+    st.info(f"**Current Configuration:** {mode_text} • {st.session_state.selected_resampling} • {len(lime_data['feature_names'])} features")
     
     # Detailed Analysis Tabs
     tab1, tab2, tab3 = st.tabs(["📊 Model Analysis", "📈 Data Insights", "🔧 Technical Details"])
@@ -833,6 +1057,7 @@ def page_analysis():
             else:
                 st.write(f"**Mode:** {model_results['mode']}")
                 st.write(f"**Resampling:** {st.session_state.selected_resampling}")
+                st.write(f"**Safe Mode:** {st.session_state.use_safe_mode}")
         
         with col2:
             st.markdown("##### Processing Summary")
@@ -890,7 +1115,7 @@ def page_analysis():
                 summary_output.text(summary_text)
 
 def page_explanation():
-    """Page 4: LIME Explanations dengan UI yang enhanced"""
+    """Page 4: LIME Explanations dengan UI yang enhanced dan error handling"""
     
     show_step_indicator("explanation")
     
@@ -945,6 +1170,7 @@ def page_explanation():
                     return
             except Exception as e:
                 st.error(f"❌ LIME initialization failed: {str(e)}")
+                st.info("Try reprocessing the data or use Safe Mode for better compatibility.")
                 return
         
         # Filter options
@@ -1019,7 +1245,7 @@ def page_explanation():
             if st.button("🔍 Generate AI Explanation", key="explain_btn", use_container_width=True):
                 with st.spinner("🤖 AI is analyzing the transaction..."):
                     try:
-                        # Use integrated explanation function
+                        # Use integrated explanation function with error handling
                         explanation_result = explain_test_instance(
                             results, 
                             instance_idx=selected_idx, 
@@ -1028,6 +1254,7 @@ def page_explanation():
                         
                         if explanation_result is None:
                             st.error("❌ Failed to generate explanation. Please try another transaction.")
+                            st.info("This might happen due to data compatibility issues. Try using Safe Mode.")
                             return
                         
                         # Display explanation results
@@ -1143,7 +1370,12 @@ def page_explanation():
                                 'Actual_Label': actual_class,
                                 'Confidence': confidence,
                                 'Correct_Prediction': is_correct,
-                                'Feature_Explanations': explanation_df.to_dict('records')
+                                'Feature_Explanations': explanation_df.to_dict('records'),
+                                'Configuration': {
+                                    'Safe_Mode': st.session_state.use_safe_mode,
+                                    'Resampling_Method': st.session_state.selected_resampling,
+                                    'Training_Mode': st.session_state.selected_training_mode
+                                }
                             }
                             
                             import json
@@ -1158,7 +1390,16 @@ def page_explanation():
                         
                     except Exception as e:
                         st.error(f"❌ Explanation generation failed: {str(e)}")
-                        st.info("Please try with a different transaction or check the data integrity.")
+                        st.info("This error might be due to compatibility issues. Try using Safe Mode or a different transaction.")
+                        
+                        # Debug information
+                        with st.expander("🔍 Debug Information"):
+                            st.code(f"""
+                            Error type: {type(e).__name__}
+                            Error message: {str(e)}
+                            Selected transaction: {selected_idx}
+                            Safe mode: {st.session_state.use_safe_mode}
+                            """)
     
     with tab2:
         st.markdown("#### Create Custom Transaction for Explanation")
@@ -1262,7 +1503,7 @@ def page_explanation():
                         # Create custom instance array
                         custom_instance = np.array([custom_values[feature] for feature in feature_names])
                         
-                        # Use integrated custom explanation function
+                        # Use integrated custom explanation function with error handling
                         custom_explanation = explain_custom_instance(
                             results,
                             custom_instance,
@@ -1271,6 +1512,7 @@ def page_explanation():
                         
                         if custom_explanation is None:
                             st.error("❌ Failed to explain custom transaction.")
+                            st.info("This might be due to compatibility issues. Try using Safe Mode.")
                             return
                         
                         # Display results
@@ -1368,13 +1610,48 @@ def page_explanation():
                                 impact = abs(row['Importance'])
                                 st.write(f"- **{feature}**: {value:.4f} (impact: -{impact:.4f})")
                         
+                        # Download custom explanation
+                        if st.button("📥 Download Custom Analysis", key="download_custom"):
+                            custom_report = {
+                                'Analysis_Type': 'Custom_Transaction',
+                                'AI_Prediction': prediction_class,
+                                'Confidence': confidence,
+                                'Input_Values': custom_values,
+                                'Feature_Explanations': explanation_df.to_dict('records'),
+                                'Configuration': {
+                                    'Safe_Mode': st.session_state.use_safe_mode,
+                                    'Resampling_Method': st.session_state.selected_resampling,
+                                    'Training_Mode': st.session_state.selected_training_mode
+                                },
+                                'Timestamp': pd.Timestamp.now().isoformat()
+                            }
+                            
+                            import json
+                            custom_json = json.dumps(custom_report, indent=2)
+                            
+                            st.download_button(
+                                label="📄 Download Custom Analysis",
+                                data=custom_json,
+                                file_name=f"custom_fraud_analysis_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.json",
+                                mime="application/json"
+                            )
+                        
                     except Exception as e:
                         st.error(f"❌ Custom explanation failed: {str(e)}")
-                        st.info("Please check your input values and try again.")
+                        st.info("This error might be due to compatibility issues. Please check your input values and try using Safe Mode.")
+                        
+                        # Debug information
+                        with st.expander("🔍 Debug Information"):
+                            st.code(f"""
+                            Error type: {type(e).__name__}
+                            Error message: {str(e)}
+                            Safe mode: {st.session_state.use_safe_mode}
+                            Number of features: {len(feature_names)}
+                            """)
 
 # Main navigation function
 def main():
-    """Enhanced main navigation with session state management"""
+    """Enhanced main navigation with session state management and error handling"""
     
     # Initialize session state
     init_session_state()
@@ -1411,13 +1688,28 @@ def main():
         
         progress_items = [
             ("Data Upload", st.session_state.uploaded_data is not None),
-            ("Processing", st.session_state.processing_complete),
+            ("Processing", st.session_state.processing_complete),  
             ("LIME Ready", st.session_state.lime_explainer is not None)
         ]
         
         for item, completed in progress_items:
             status = "✅" if completed else "⏳"
             st.write(f"{status} {item}")
+        
+        st.markdown("---")
+        
+        # Mode indicator
+        st.markdown("### 🛡️ Current Mode")
+        if st.session_state.compatibility_checked:
+            mode_text = "🛡️ Safe Mode" if st.session_state.use_safe_mode else "⚡ Advanced Mode"
+            mode_color = "success" if st.session_state.use_safe_mode else "warning"
+            
+            if st.session_state.use_safe_mode:
+                st.success(f"{mode_text}\nCompatible methods only")
+            else:
+                st.warning(f"{mode_text}\nAll methods available")
+        else:
+            st.info("⏳ Mode not selected")
         
         # Session information
         if st.session_state.uploaded_data is not None:
@@ -1429,6 +1721,7 @@ def main():
             if st.session_state.pipeline_results:
                 metrics = st.session_state.pipeline_results['model_results']['metrics']
                 st.write(f"**Accuracy:** {metrics['accuracy']:.3f}")
+                st.write(f"**Resampling:** {st.session_state.selected_resampling}")
         
         st.markdown("---")
         
@@ -1448,12 +1741,17 @@ def main():
                     'timestamp': pd.Timestamp.now().isoformat(),
                     'metrics': st.session_state.pipeline_results['model_results']['metrics'],
                     'configuration': {
+                        'safe_mode': st.session_state.use_safe_mode,
                         'resampling': st.session_state.selected_resampling,
                         'training_mode': st.session_state.selected_training_mode,
                         'hidden_neurons': st.session_state.selected_hidden_neurons,
                         'activation': st.session_state.selected_activation,
                         'threshold': st.session_state.selected_threshold
-                    }
+                    },
+                    'data_info': {
+                        'total_rows': len(st.session_state.uploaded_data),
+                        'total_columns': st.session_state.uploaded_data.shape[1]
+                    } if st.session_state.uploaded_data is not None else {}
                 }
                 
                 import json
@@ -1465,16 +1763,91 @@ def main():
                     file_name=f"fraud_detection_session_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.json",
                     mime="application/json"
                 )
+            else:
+                st.info("No session data to export yet.")
+        
+        # Help section
+        st.markdown("---")
+        st.markdown("### ❓ Help")
+        
+        with st.expander("🚨 Common Issues"):
+            st.markdown("""
+            **Resampling Errors:**
+            - Use Safe Mode for better compatibility
+            - Try SMOTE or RandomOverSampler
+            - Check library versions
+            
+            **LIME Errors:**
+            - Ensure data is properly processed
+            - Try smaller number of features
+            - Use Safe Mode for stability
+            
+            **Performance Issues:**
+            - Reduce dataset size if too large
+            - Use manual mode instead of Optuna
+            - Check for missing values
+            """)
+        
+        with st.expander("🛡️ Safe Mode Benefits"):
+            st.markdown("""
+            **Safe Mode includes:**
+            - SMOTE (Most reliable)
+            - RandomOverSampler (Very stable)
+            - RandomUnderSampler (Safe)
+            - ADASYN (Generally compatible)
+            
+            **Excluded methods:**
+            - TomekLinks (compatibility issues)
+            - ENN (version dependent)
+            - Combined methods (complex dependencies)
+            """)
     
-    # Main content area
-    if st.session_state.current_page == 'upload':
-        page_upload()
-    elif st.session_state.current_page == 'process':
-        page_process()
-    elif st.session_state.current_page == 'analysis':
-        page_analysis()
-    elif st.session_state.current_page == 'explanation':
-        page_explanation()
+    # Main content area with error boundary
+    try:
+        if st.session_state.current_page == 'upload':
+            page_upload()
+        elif st.session_state.current_page == 'process':
+            page_process()
+        elif st.session_state.current_page == 'analysis':
+            page_analysis()
+        elif st.session_state.current_page == 'explanation':
+            page_explanation()
+    except Exception as e:
+        st.error(f"❌ Application Error: {str(e)}")
+        
+        # Error recovery options
+        st.markdown("### 🔧 Error Recovery")
+        
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            if st.button("🏠 Go to Upload", key="error_home"):
+                st.session_state.current_page = 'upload'
+                st.rerun()
+        
+        with col2:
+            if st.button("🛡️ Enable Safe Mode", key="error_safe"):
+                st.session_state.use_safe_mode = True
+                st.session_state.selected_resampling = 'SMOTE'
+                st.session_state.compatibility_checked = True
+                st.rerun()
+        
+        with col3:
+            if st.button("🔄 Reset All", key="error_reset"):
+                for key in list(st.session_state.keys()):
+                    del st.session_state[key]
+                st.rerun()
+        
+        # Debug information
+        with st.expander("🔍 Debug Information"):
+            st.code(f"""
+            Error Type: {type(e).__name__}
+            Error Message: {str(e)}
+            Current Page: {st.session_state.current_page}
+            Safe Mode: {st.session_state.use_safe_mode}
+            Has Data: {st.session_state.uploaded_data is not None}
+            Processing Complete: {st.session_state.processing_complete}
+            """)
 
 if __name__ == "__main__":
     main()
