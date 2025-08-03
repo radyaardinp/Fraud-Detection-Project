@@ -1,4 +1,3 @@
-# integration_test.py - Test script untuk memastikan semua modul terintegrasi dengan baik
 import pandas as pd
 import numpy as np
 from predict_pipeline import run_complete_pipeline, validate_pipeline_results, extract_lime_data
@@ -130,7 +129,7 @@ def test_complete_integration(df: pd.DataFrame):
     
     return True
 
-def print_pipeline_summary(pipeline_results: Dict):
+def print_pipeline_summary(pipeline_results):
     """
     Print summary informasi dari pipeline results
     """
