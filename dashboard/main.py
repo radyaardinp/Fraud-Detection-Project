@@ -678,13 +678,13 @@ if __name__ == "__main__":
                 is_valid, error_msg = validate_pipeline_results(pipeline_results)
                 if not is_valid:
                     error_container.error(f"❌ Pipeline validation failed: {error_msg}")
-                    return
+                    st.stop()
                 
                 # Create LIME explainer
                 lime_explainer = create_lime_explainer_from_pipeline(pipeline_results)
                 if lime_explainer is None:
                     error_container.error("❌ Failed to create LIME explainer!")
-                    return
+                    st.stop()
                 
                 # Store results
                 st.session_state.pipeline_results = pipeline_results
