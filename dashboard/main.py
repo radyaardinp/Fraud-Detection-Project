@@ -1297,7 +1297,7 @@ def page_explanation():
                         
                         if top_fraud_features:
                             summary_text += f"""
-                            **🚨 Features increasing fraud risk (according to LIME):**
+                            **\U0001F6A8 Features increasing fraud risk (according to LIME):**
                             {', '.join(top_fraud_features)}
                             
                             """
