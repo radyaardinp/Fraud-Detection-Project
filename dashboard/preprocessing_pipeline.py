@@ -388,26 +388,14 @@ class PreprocessingPipeline:
                     'bounds': {'lower': lower_bound, 'upper': upper_bound}
                 }
         
-        # Z-Score Method
-        zscore_outliers = {}
-        for col in numeric_cols:
-            if col in df.columns and df[col].std() > 0:
-                z_scores = np.abs((df[col] - df[col].mean()) / df[col].std())
-                outliers_mask = z_scores > 3
-                zscore_outliers[col] = {
-                    'count': outliers_mask.sum(),
-                    'percentage': (outliers_mask.sum() / len(df)) * 100
-                }
-        
         outlier_stats['methods'] = {
-            'iqr': iqr_outliers,
-            'zscore': zscore_outliers
+            'iqr': iqr_outliers
         }
         
         outlier_stats['summary'] = {
             'total_numeric_columns': len(numeric_cols),
             'columns_analyzed': numeric_cols,
-            'outlier_detection_methods': ['IQR', 'Z-Score']
+            'outlier_detection_methods': ['IQR']
         }
         
         return df, outlier_stats
