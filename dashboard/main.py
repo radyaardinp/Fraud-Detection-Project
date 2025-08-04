@@ -672,7 +672,7 @@ if __name__ == "__main__":
                 
                 if pipeline_results is None:
                     error_container.error("❌ Pipeline processing failed - no results returned!")
-                    return
+                    st.stop()
                 
                 # Validate results
                 is_valid, error_msg = validate_pipeline_results(pipeline_results)
