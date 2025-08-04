@@ -446,6 +446,7 @@ def page_process():
         **Model Configuration:**
         - Advanced Resampling: {st.session_state.selected_resampling}
         - Training Mode: {st.session_state.selected_training_mode}
+        )
         
         # Session information
         if st.session_state.uploaded_data is not None:
