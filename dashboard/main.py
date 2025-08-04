@@ -717,7 +717,7 @@ if __name__ == "__main__":
                     if st.button("📋 Show Error Details", key="show_error"):
                         st.code(str(e))
                 
-                return
+                st.stop()
     
     # Show results if processing is complete
     if st.session_state.processing_complete and st.session_state.pipeline_results is not None:
