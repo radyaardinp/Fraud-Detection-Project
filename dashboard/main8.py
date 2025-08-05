@@ -961,7 +961,7 @@ elif st.session_state.current_step == 4:
             
             # Class-wise performance
             performance_data = {
-                'Class': ['Normal', 'Fraud'],
+                'Class': ['Not Fraud', 'Fraud'],
                 'Precision': [results['precision'] + 0.02, results['precision'] - 0.02],
                 'Recall': [results['recall'] + 0.01, results['recall'] - 0.01],
                 'F1-Score': [results['f1'] + 0.015, results['f1'] - 0.015]
