@@ -26,20 +26,30 @@ st.set_page_config(
 st.markdown("""
 <style>
     .main-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 2rem;
-        border-radius: 10px;
-        color: white;
-        margin-bottom: 2rem;
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #2E86AB;
+        text-align: center;
+        margin-bottom: 0.2rem;
+        padding: 0.5rem;
     }
     
-    .metric-card {
-        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-        border-left: 4px solid #3b82f6;
-        padding: 1.5rem;
-        border-radius: 8px;
-        margin: 0.5rem 0;
+    .sub-header {
+        font-size: 1.3rem;
+        font-weight: 500;
+        color: #666;
         text-align: center;
+        margin-bottom: 0.5rem;
+    }
+    
+    .description-text {
+        font-size: 1.1rem;
+        color: #555;
+        text-align: center;
+        line-height: 1.6;
+        margin: 1rem auto;
+        max-width: 800px;
+        padding: 0.2rem;
     }
     
     .success-metric {
@@ -103,12 +113,6 @@ st.markdown("""
         text-align: center;
     }
     
-    .footer-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 2rem;
-        margin: 2rem 0;
-    }
         .footer-section {
         padding: 1rem;
     }
@@ -131,24 +135,19 @@ if 'current_step' not in st.session_state:
     st.session_state.selected_resampling = 'none'
     st.session_state.feature_importance = None
 
-# Header
+# Main header
+st.markdown('<div class="main-header">🛡️ Fraud Detection System Dashboard</div>', unsafe_allow_html=True)
+st.markdown('<div class="sub-header">Advanced AI-Powered Transaction Analysis</div>', unsafe_allow_html=True)
+
+# Description
 st.markdown("""
-<div class="main-header">
-    <div style="display: flex; align-items: center; justify-content: space-between;">
-        <div style="display: flex; align-items: center;">
-            <div style="font-size: 3rem; margin-right: 1rem;">🛡️</div>
-            <div>
-                <h1 style="margin: 0; font-size: 2rem;">Fraud Detection System</h1>
-                <p style="margin: 0; opacity: 0.8;">ELM + LIME Integration Dashboard</p>
-            </div>
-        </div>
-        <div style="text-align: right;">
-            <p style="margin: 0; opacity: 0.8;">Status Sistem</p>
-            <p style="margin: 0; color: #10b981;">✅ Siap Beroperasi</p>
-        </div>
-    </div>
+<div class="description-text">
+Dashboard ini menggunakan Algoritma Machine Learning <span class="highlight-text">Extreme Learning Machine (ELM)</span> 
+yang telah terintegrasi dengan <span class="highlight-text">LIME (Local Interpretable Model-agnostic Explanations)</span> 
+untuk mendeteksi fraud dengan akurasi tinggi dan memberikan penjelasan yang dapat dipahami.
 </div>
 """, unsafe_allow_html=True)
+
 
 # Progress Steps with clickable navigation
 steps = [
@@ -269,11 +268,6 @@ if st.session_state.current_step == 1:
     # Step 1: Upload Data
     st.header("📤 Upload Data Transaksi")
     
-    st.markdown("""
-    Upload file CSV yang berisi data transaksi untuk analisis fraud detection. 
-    Sistem akan secara otomatis menganalisis struktur data dan kualitas dataset.
-    """)
-    
     uploaded_file = st.file_uploader(
         "Pilih file CSV",
         type=['csv'],
@@ -285,7 +279,7 @@ if st.session_state.current_step == 1:
         st.success("✅ File berhasil diupload!")
         
         # Dataset preview
-        st.markdown("### 👁️ Preview Dataset")
+        st.markdown("###Preview Dataset")
         
         # Dataset metrics
         col1, col2, col3 = st.columns(3)
@@ -307,7 +301,7 @@ if st.session_state.current_step == 1:
             st.markdown('</div>', unsafe_allow_html=True)
         
         # Data preview table
-        st.markdown("### 📋 Preview Data (10 baris pertama)")
+        st.markdown("### 📋 Preview Data")
         st.dataframe(st.session_state.data.head(10), use_container_width=True)
         
         if st.button("➡️ Lanjut ke Preprocessing", type="primary"):
