@@ -1204,7 +1204,7 @@ elif st.session_state.current_step == 4:
         with col2:
             if st.button("➡️ Lanjut ke Interpretasi LIME", type="primary"):
                 st.session_state.current_step = 5
-                st.rerun()2 = st.columns(2)
+                st.rerun()
         
         with col1:
             st.write("**Tuning Configuration**")
