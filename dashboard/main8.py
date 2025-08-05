@@ -932,61 +932,6 @@ elif st.session_state.current_step == 4:
         results = st.session_state.training_results
         results = st.session_state.training_results
         
-        # Performance metrics
-        st.subheader("📊 Metrik Performa Model")
-        
-        col1, col2, col3, col4 = st.columns(4)
-        
-        with col1:
-            fig = go.Figure(go.Indicator(
-                mode = "gauge+number",
-                value = results['accuracy'] * 100,
-                domain = {'x': [0, 1], 'y': [0, 1]},
-                title = {'text': "Accuracy"},
-                gauge = {'axis': {'range': [None, 100]},
-                        'bar': {'color': "darkgreen"},
-                        'steps': [
-                            {'range': [0, 50], 'color': "lightgray"},
-                            {'range': [50, 85], 'color': "yellow"},
-                            {'range': [85, 100], 'color': "lightgreen"}],
-                        'threshold': {'line': {'color': "red", 'width': 4},
-                                    'thickness': 0.75, 'value': 90}}))
-            fig.update_layout(height=200)
-            st.plotly_chart(fig, use_container_width=True)
-        
-        with col2:
-            fig = go.Figure(go.Indicator(
-                mode = "gauge+number",
-                value = results['precision'] * 100,
-                domain = {'x': [0, 1], 'y': [0, 1]},
-                title = {'text': "Precision"},
-                gauge = {'axis': {'range': [None, 100]},
-                        'bar': {'color': "darkblue"}}))
-            fig.update_layout(height=200)
-            st.plotly_chart(fig, use_container_width=True)
-        
-        with col3:
-            fig = go.Figure(go.Indicator(
-                mode = "gauge+number",
-                value = results['recall'] * 100,
-                domain = {'x': [0, 1], 'y': [0, 1]},
-                title = {'text': "Recall"},
-                gauge = {'axis': {'range': [None, 100]},
-                        'bar': {'color': "darkorange"}}))
-            fig.update_layout(height=200)
-            st.plotly_chart(fig, use_container_width=True)
-        
-        with col4:
-            fig = go.Figure(go.Indicator(
-                mode = "gauge+number",
-                value = results['f1'] * 100,
-                domain = {'x': [0, 1], 'y': [0, 1]},
-                title = {'text': "F1-Score"},
-                gauge = {'axis': {'range': [None, 100]},
-                        'bar': {'color': "purple"}}))
-            fig.update_layout(height=200)
-            st.plotly_chart(fig, use_container_width=True)
-        
         # Confusion Matrix
         col1, col2 = st.columns(2)
         
