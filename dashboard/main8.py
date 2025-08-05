@@ -17,7 +17,7 @@ warnings.filterwarnings('ignore')
 # Page config
 st.set_page_config(
     page_title="🛡️ Fraud Detection System Dashboard",
-    page_icon="🛡️",
+    page_icon=" ",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
@@ -1173,9 +1173,10 @@ elif st.session_state.current_step == 5:
             st.write("")  # Placeholder for alignment
 
 # Footer
-    st.markdown("""
-    <div style="margin-top: 3rem; padding: 2rem; text-align: center; color: #666; border-top: 1px solid #eee;">
-        <p>🛡️ Advanced Fraud Detection System | Powered by ELM + LIME Integration</p>
-        <p><small>Built with Streamlit • Machine Learning • Explainable AI</small></p>
-    </div>
-    """, unsafe_allow_html=True)
+st.markdown("---")
+st.markdown("""
+<div style="margin-top: 3rem; padding: 2rem; text-align: center; color: #666; border-top: 1px solid #eee;">
+<p>🛡️ Fraud Detection System | Powered by ELM + LIME Integration</p>
+<p><small>Built with Streamlit • Machine Learning • Explainable AI</small></p>
+</div>
+""", unsafe_allow_html=True)
