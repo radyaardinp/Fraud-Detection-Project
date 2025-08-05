@@ -1021,22 +1021,7 @@ elif st.session_state.current_step == 4:
         
         # Display comparison table with highlighting
         st.dataframe(comparison_df.style.highlight_max(axis=0, subset=['Accuracy', 'Precision', 'Recall', 'F1-Score']), use_container_width=True)
-        
-        # Visualization of comparison
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            fig = px.bar(comparison_df, x='Method', y='Accuracy', 
-                        title='Accuracy Comparison Across Resampling Methods')
-            fig.update_layout(xaxis_tickangle=-45)
-            st.plotly_chart(fig, use_container_width=True)
-        
-        with col2:
-            fig = px.scatter(comparison_df, x='Precision', y='Recall', 
-                           size='F1-Score', hover_name='Method',
-                           title='Precision vs Recall (Size = F1-Score)')
-            st.plotly_chart(fig, use_container_width=True)
-        
+
         # Hyperparameter Tuning with Optuna - moved below main evaluation
         st.subheader("🔧 Hyperparameter Tuning (Optuna)")
         
