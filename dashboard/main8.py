@@ -109,6 +109,14 @@ st.markdown("""
         gap: 2rem;
         margin: 2rem 0;
     }
+        .footer-section {
+        padding: 1rem;
+    }
+    
+    .footer-section h4 {
+        color: #60a5fa;
+        margin-bottom: 1rem;
+    }
     
 </style>
 """, unsafe_allow_html=True)
