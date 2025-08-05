@@ -757,7 +757,8 @@ elif st.session_state.current_step == 2:
             if st.button("➡️ Lanjut ke Analisis", type="primary"):
                 st.session_state.processed_data = st.session_state.data.copy()
                 st.session_state.current_step = 3
-                st.rerun()st.session_state.data = handle_missing_values(st.session_state.data)
+                st.rerun()
+                st.session_state.data = handle_missing_values(st.session_state.data)
                     st.success("✅ Missing values berhasil ditangani!")
                     st.rerun()
 
