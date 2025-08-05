@@ -110,14 +110,6 @@ st.markdown("""
         margin: 2rem 0;
     }
     
-    .footer-section {
-        padding: 1rem;
-    }
-    
-    .footer-section h4 {
-        color: #60a5fa;
-        margin-bottom: 1rem;
-    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -1173,40 +1165,9 @@ elif st.session_state.current_step == 5:
             st.write("")  # Placeholder for alignment
 
 # Footer
-st.markdown("---")
-st.markdown("""
-<div class="footer">
-    <h2>🛡️ Fraud Detection System</h2>
-    <p style="font-size: 1.1em; margin: 1rem 0;">Deteksi fraud yang akurat dan dapat dijelaskan dengan teknologi ELM + LIME</p>
-    
-    <div class="footer-grid">
-        <div class="footer-section">
-            <h4>🧠 Teknologi</h4>
-            <p>• Extreme Learning Machine (ELM)<br>
-            • LIME Interpretability<br>
-            • Advanced Resampling Methods<br>
-            • Hyperparameter Optimization</p>
-        </div>
-        
-        <div class="footer-section">
-            <h4>✨ Fitur Utama</h4>
-            <p>• Preprocessing Otomatis<br>
-            • Multiple Resampling Options<br>
-            • High-Speed Training<br>
-            • Explainable AI Integration</p>
-        </div>
-        
-        <div class="footer-section">
-            <h4>📊 Keunggulan</h4>
-            <p>• Akurasi Tinggi (>95%)<br>
-            • Training Cepat (<5 detik)<br>
-            • Interpretasi Real-time<br>
-            • User-Friendly Interface</p>
-        </div>
+    st.markdown("""
+    <div style="margin-top: 3rem; padding: 2rem; text-align: center; color: #666; border-top: 1px solid #eee;">
+        <p>🛡️ Advanced Fraud Detection System | Powered by ELM + LIME Integration</p>
+        <p><small>Built with Streamlit • Machine Learning • Explainable AI</small></p>
     </div>
-    
-    <div style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid #4b5563;">
-        <p style="margin: 0; opacity: 0.8;">© 2024 Fraud Detection System • Powered by ELM + LIME Integration</p>
-    </div>
-</div>
-""", unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
