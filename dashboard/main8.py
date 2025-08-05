@@ -930,7 +930,7 @@ elif st.session_state.current_step == 4:
             st.rerun()
     else:
         results = st.session_state.training_results
- results = st.session_state.training_results
+        results = st.session_state.training_results
         
         # Performance metrics
         st.subheader("📊 Metrik Performa Model")
