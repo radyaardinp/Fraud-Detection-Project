@@ -442,7 +442,10 @@ if st.session_state.current_step == 1:
         st.markdown("### 📋 Preview Data")
         st.dataframe(st.session_state.data.head(15), use_container_width=True)
         
-        if st.button("➡️ Lanjut ke Preprocessing", type="primary"):
+        
+        col1, col2, col3 = st.columns([6, 2, 2])  
+        with col3:
+            if st.button("➡️ Lanjut ke Preprocessing", type="primary"):
             st.session_state.current_step = 2
             st.rerun()
 
@@ -461,7 +464,7 @@ elif st.session_state.current_step == 2:
 
         # Hitung missing sebelum penanganan
         missing_before = st.session_state.data.isnull().sum()
-        missing_df = missing_before[missing_before > 0].to_frame(name="Missing Sebelum")
+        missing_df = missing_before[missing_before > 0].to_frame(name="Jumlah Missing Value")
         
         if not missing_df.empty and not st.session_state.get("missing_handled", False):
             st.warning("⚠️ Terdapat missing values pada dataset:")
@@ -472,7 +475,7 @@ elif st.session_state.current_step == 2:
         
                 # Hitung missing setelah penanganan
                 missing_after = st.session_state.data.isnull().sum()
-                after_df = missing_after.to_frame(name="Missing Setelah")
+                after_df = missing_after.to_frame(name="Jumalh Missing Value Setelah Penanganan")
         
                 # Gabungkan before-after
                 compare_df = missing_df.join(after_df)
@@ -482,7 +485,7 @@ elif st.session_state.current_step == 2:
         
         elif st.session_state.get("missing_handled", False):
             st.success("✅ Missing values telah berhasil ditangani.")
-            st.markdown("### 📊 Perbandingan Sebelum & Sesudah Penanganan")
+            st.markdown("### 📊 Perbandingan Jumlah Missing Value Sebelum & Sesudah Penanganan")
             st.dataframe(st.session_state.missing_comparison, use_container_width=True)
             st.session_state.missing_handled = False  # reset flag agar tidak muncul terus
         
