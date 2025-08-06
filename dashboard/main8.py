@@ -5,6 +5,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import time
+import copy
 import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
@@ -447,10 +448,10 @@ elif st.session_state.current_step == 2:
         
         **Threshold**: 95th percentile untuk outlier detection
         """)
-
-        # Cek apakah data mentah sudah disimpan
+        
         if 'raw_data' not in st.session_state:
-            st.session_state.raw_data = st.session_state.data.copy()
+            if 'fraud' not in st.session_state.data.columns:
+                st.session_state.raw_data = copy.deepcopy(st.session_state.data)
 
         # Dataframe sebelum labelling
         st.markdown("### 📋 Data Sebelum Diberikan Label")
