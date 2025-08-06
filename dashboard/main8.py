@@ -75,12 +75,12 @@ if 'current_step' not in st.session_state:
     st.session_state.selected_resampling = 'none'
     st.session_state.feature_importance = None
 
+# Main header
 st.markdown('<div class="main-header">🛡️ Fraud Detection System Dashboard</div>', unsafe_allow_html=True)
+st.markdown('<div class="sub-header">Advanced AI-Powered Transaction Analysis</div>', unsafe_allow_html=True)
+st.markdown("<br>", unsafe_allow_html=True)
 
 if st.session_state.current_step == 1:
-    # Main header
-    st.markdown('<div class="sub-header">Advanced AI-Powered Transaction Analysis</div>', unsafe_allow_html=True)
-
     # Description
     st.markdown("""
     <div class="description-text">
