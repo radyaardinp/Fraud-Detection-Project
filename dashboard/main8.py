@@ -533,6 +533,17 @@ elif st.session_state.current_step == 2:
                     labels={'x': 'Payment Source', 'y': 'Jumlah Transaksi'},
                     title="Distribusi Payment Source")
                 st.plotly_chart(fig, use_container_width=True)
+
+            merchant_col = 'merchantId'
+            if 'fraud' in st.session_state.data.columns and merchant_col in st.session_state.data.columns:
+                fraud_per_merchant = st.session_state.data[st.session_state.data['fraud'] == 'Fraud']
+                top_merchant_fraud = fraud_per_merchant[merchant_col].value_counts().head(10)
+                fig = px.bar(
+                    x=top_merchant_fraud.values, y=top_merchant_fraud.index,
+                    orientation='h',
+                    labels={'x': 'Jumlah Fraud', 'y': 'Merchant'},
+                    title="Top 10 Merchant dengan Fraud Terbanyak")
+                st.plotly_chart(fig, use_container_width=True)
         
         # 2. Distribusi Status Transaksi
         with col2:
@@ -544,26 +555,13 @@ elif st.session_state.current_step == 2:
                     title="Distribusi Status Transaksi")
                 st.plotly_chart(fig, use_container_width=True)
         
-        # 3. Distribusi Fraud per Merchant
-        merchant_col = 'merchantId'
-        if 'fraud' in st.session_state.data.columns and merchant_col in st.session_state.data.columns:
-            fraud_per_merchant = st.session_state.data[st.session_state.data['fraud'] == 'Fraud']
-            top_merchant_fraud = fraud_per_merchant[merchant_col].value_counts().head(10)
-            fig = px.bar(
-                x=top_merchant_fraud.values, y=top_merchant_fraud.index,
-                orientation='h',
-                labels={'x': 'Jumlah Fraud', 'y': 'Merchant'},
-                title="Top 10 Merchant dengan Fraud Terbanyak")
-            st.plotly_chart(fig, use_container_width=True)
-        
-        # 4. Distribusi Fraud vs Not Fraud
-        fraud_label_col = 'fraud'
-        if fraud_label_col in st.session_state.data.columns:
-            fraud_dist = st.session_state.data[fraud_label_col].value_counts()
-            fig = px.pie(
-                values=fraud_dist.values, names=fraud_dist.index,
-                title="Distribusi Fraud vs Not Fraud")
-            st.plotly_chart(fig, use_container_width=True)
+            fraud_label_col = 'fraud'
+            if fraud_label_col in st.session_state.data.columns:
+                fraud_dist = st.session_state.data[fraud_label_col].value_counts()
+                fig = px.pie(
+                    values=fraud_dist.values, names=fraud_dist.index,
+                    title="Distribusi Fraud vs Not Fraud")
+                st.plotly_chart(fig, use_container_width=True)
 
         st.markdown("---")
         
