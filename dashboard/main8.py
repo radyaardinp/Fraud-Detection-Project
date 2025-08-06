@@ -455,7 +455,7 @@ elif st.session_state.current_step == 2:
 
         # Dataframe sebelum labelling
         st.markdown("### 📋 Data Sebelum Diberikan Label")
-        st.dataframe(st.session_state.data.head(10), use_container_width=True)
+        st.dataframe(st.session_state.raw_data.head(10), use_container_width=True)
 
         # Button
         if 'fraud' not in st.session_state.data.columns:
