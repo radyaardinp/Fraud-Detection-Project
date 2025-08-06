@@ -414,6 +414,10 @@ elif st.session_state.current_step == 2:
         
             if st.button("🔧 Terapkan Penanganan Missing Values"):
                 st.session_state.data = handle_missing_values(st.session_state.data)
+
+                # 🔐 Simpan raw_data setelah misval ditangani
+                if 'raw_data' not in st.session_state:
+                    st.session_state.raw_data = copy.deepcopy(st.session_state.data)
         
                 # Hitung missing setelah penanganan
                 missing_after = st.session_state.data.isnull().sum()
