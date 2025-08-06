@@ -290,6 +290,14 @@ class FraudDetectionLabeler:
         df['label3'] = df.apply(self.rule_3, axis=1)
         df['fraud'] = df[['label1', 'label2', 'label3']].apply(lambda r: 'Fraud' if 'Fraud' in r.values else 'Not Fraud', axis=1)
 
+        # Hapus fitur tambahan
+        original_cols = [col for col in df.columns if col not in [
+            'createdDate', 'is_declined', 'daily_freq', 'failed_count',
+            'avg_failed', 'fail_ratio', 'failed_time_diff',
+            'mismatch', 'mismatch_ratio', 'is_nominal_tinggi',
+            'label1', 'label2', 'label3']]
+        df = df[original_cols + ['fraud']]
+
         return df
         
 #Membuat plot visualisasi confussion matrix
