@@ -475,48 +475,45 @@ elif st.session_state.current_step == 2:
         st.markdown("---")
         
         # Outlier Detection Section
-        st.subheader("📊 Identifikasi Outlier (IQR Method)")
-        
+        st.subheader("📉 Penanganan Outlier Otomatis (IQR)")
+
         numeric_cols = st.session_state.data.select_dtypes(include=[np.number]).columns.tolist()
-        if numeric_cols:
-            target_col = st.selectbox("Pilih kolom untuk analisis:", numeric_cols, key="outlier_col")
-            
-            outliers, lower_bound, upper_bound = detect_outliers_iqr(st.session_state.data, target_col)
-            n_outliers = outliers.sum()
-            
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                # Outlier visualization
-                fig = px.box(st.session_state.data, y=target_col, title=f"Outlier Detection - {target_col}")
-                st.plotly_chart(fig, use_container_width=True)
-            
-            with col2:
-                st.write("**Hasil Deteksi**")
-                st.metric("Total Data Points", len(st.session_state.data))
-                st.metric("Outliers Detected", f"{n_outliers} ({n_outliers/len(st.session_state.data)*100:.2f}%)")
-                st.metric("Normal Data", f"{len(st.session_state.data) - n_outliers} ({(1-n_outliers/len(st.session_state.data))*100:.2f}%)")
-                
-                st.info(f"""
-                **IQR Bounds:**
-                - Lower bound: {lower_bound:.2f}
-                - Upper bound: {upper_bound:.2f}
-                """)
-                
-                outlier_action = st.radio(
-                    "Tindakan:",
-                    ["Keep outliers", "Remove outliers", "Cap outliers"],
-                    key="outlier_action"
-                )
-                
-                if st.button("Terapkan Penanganan Outlier", key="handle_outliers"):
-                    if outlier_action == "Remove outliers":
-                        st.session_state.data = st.session_state.data[~outliers]
-                    elif outlier_action == "Cap outliers":
-                        st.session_state.data.loc[st.session_state.data[target_col] < lower_bound, target_col] = lower_bound
-                        st.session_state.data.loc[st.session_state.data[target_col] > upper_bound, target_col] = upper_bound
-                    st.success("✅ Outlier berhasil ditangani!")
-                    st.rerun()
+        
+        if 'outlier_handled' not in st.session_state:
+            # Simpan data awal untuk plot before
+            st.session_state.outlier_before = st.session_state.data.copy()
+        
+        if st.button("🚨 Terapkan Penanganan Outlier (Remove by IQR)"):
+            st.session_state.data = handle_outliers_iqr(st.session_state.data, numeric_cols)
+            st.session_state.outlier_handled = True
+            st.rerun()
+        
+        if 'outlier_handled' in st.session_state:
+            st.success("✅ Outlier berhasil ditangani menggunakan metode IQR!")
+        
+            # Plot before
+            st.markdown("### 📊 Boxplot Sebelum Penanganan")
+            fig1, axes1 = plt.subplots(1, min(3, len(numeric_cols)), figsize=(18, 4))
+            if len(numeric_cols) == 1:
+                axes1 = [axes1]
+            for i, col in enumerate(numeric_cols[:3]):
+                sns.boxplot(x=st.session_state.outlier_before[col], ax=axes1[i])
+                axes1[i].set_title(f"Before: {col}")
+            st.pyplot(fig1)
+        
+            # Plot after
+            st.markdown("### 📊 Boxplot Setelah Penanganan")
+            fig2, axes2 = plt.subplots(1, min(3, len(numeric_cols)), figsize=(18, 4))
+            if len(numeric_cols) == 1:
+                axes2 = [axes2]
+            for i, col in enumerate(numeric_cols[:3]):
+                sns.boxplot(x=st.session_state.data[col], ax=axes2[i])
+                axes2[i].set_title(f"After: {col}")
+            st.pyplot(fig2)
+        
+            # Reset flag agar tidak muncul terus
+            del st.session_state.outlier_handled
+
         
         st.markdown("---")
         
