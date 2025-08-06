@@ -468,7 +468,7 @@ elif st.session_state.current_step == 2:
             "Jumlah Missing": missing_info.values
         })
 
-        missing_df = missing_df[missing_df["Jumlah Missing"] > 0]
+        missing_df = missing_df[missing_df["Jumlah Missing"] < 0]
 
         if missing_df.empty:
             st.success("✅ Tidak ada missing values dalam dataset!")
