@@ -415,13 +415,12 @@ elif st.session_state.current_step == 2:
             if st.button("🔧 Terapkan Penanganan Missing Values"):
                 st.session_state.data = handle_missing_values(st.session_state.data)
 
-                # 🔐 Simpan raw_data setelah misval ditangani
-                if 'raw_data' not in st.session_state:
-                    st.session_state.raw_data = copy.deepcopy(st.session_state.data)
+                # Simpan raw_data setelah misval ditangani
+                st.session_state.raw_data = copy.deepcopy(st.session_state.data)
         
                 # Hitung missing setelah penanganan
                 missing_after = st.session_state.data.isnull().sum()
-                after_df = missing_after.to_frame(name="Jumalh Missing Value Setelah Penanganan")
+                after_df = missing_after.to_frame(name="Jumlah Missing Value Setelah Penanganan")
         
                 # Gabungkan before-after
                 compare_df = missing_df.join(after_df)
@@ -452,14 +451,13 @@ elif st.session_state.current_step == 2:
         
         **Threshold**: 95th percentile untuk outlier detection
         """)
-        
-        if 'raw_data' not in st.session_state:
-            if 'fraud' not in st.session_state.data.columns:
-                st.session_state.raw_data = copy.deepcopy(st.session_state.data)
 
         # Dataframe sebelum labelling
         st.markdown("### 📋 Data Sebelum Diberikan Label")
-        st.dataframe(st.session_state.raw_data.head(10), use_container_width=True)
+        if 'raw_data' in st.session_state:
+            st.dataframe(st.session_state.raw_data.head(10), use_container_width=True)
+        else:
+            st.info("Data belum siap ditampilkan. Silakan tangani missing value terlebih dahulu.")
 
         # Button
         if 'fraud' not in st.session_state.data.columns:
