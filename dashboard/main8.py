@@ -276,6 +276,14 @@ class FraudDetectionLabeler:
 
     def apply_rule_based_labeling(self, df):
         df = self.ensure_columns(df)
+
+            # ⛔ Bersihkan sisa kolom labeling sebelumnya, kalau ada
+        drop_cols = [
+            'createdDate', 'is_declined', 'daily_freq', 'failed_count', 'avg_failed', 'fail_ratio', 
+            'failed_time_diff', 'mismatch', 'mismatch_ratio', 'is_nominal_tinggi', 'label1', 'label2', 'label3'
+    ]
+        df = df.drop(columns=[col for col in drop_cols if col in df.columns], errors='ignore')
+
         df = self.add_metrics(df)
         df = self.add_fail_intervals(df)
 
@@ -291,12 +299,9 @@ class FraudDetectionLabeler:
         df['fraud'] = df[['label1', 'label2', 'label3']].apply(lambda r: 'Fraud' if 'Fraud' in r.values else 'Not Fraud', axis=1)
 
         # Hapus fitur tambahan
-        original_cols = [col for col in df.columns if col not in [
-            'createdDate', 'is_declined', 'daily_freq', 'failed_count',
-            'avg_failed', 'fail_ratio', 'failed_time_diff',
-            'mismatch', 'mismatch_ratio', 'is_nominal_tinggi',
-            'label1', 'label2', 'label3']]
+        original_cols = [col for col in df.columns if col not in drop_cols]
         df = df[original_cols + ['fraud']]
+        df = df.loc[:, ~df.columns.duplicated()]
 
         return df
         
