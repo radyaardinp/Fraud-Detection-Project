@@ -33,7 +33,6 @@ st.markdown("""
         margin-bottom: 0.2rem;
         padding: 0.5rem;
     }
-    
     .sub-header {
         font-size: 1.3rem;
         font-weight: 500;
@@ -41,7 +40,6 @@ st.markdown("""
         text-align: center;
         margin-bottom: 0.5rem;
     }
-    
     .description-text {
         font-size: 1.1rem;
         color: #555;
@@ -51,59 +49,15 @@ st.markdown("""
         max-width: 800px;
         padding: 0.2rem;
     }
-    
     .success-metric {
         border-left-color: #10b981;
     }
-    
     .warning-metric {
         border-left-color: #f59e0b;
-    }
-    
+    }  
     .error-metric {
         border-left-color: #ef4444;
     }
-    
-    .step-indicator {
-        display: flex;
-        justify-content: center;
-        margin: 2rem 0;
-    }
-    
-    .step-item {
-        padding: 0.75rem 1.5rem;
-        margin: 0 0.5rem;
-        border-radius: 25px;
-        font-size: 0.9rem;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        text-decoration: none;
-        color: inherit;
-    }
-    
-    .step-completed {
-        background-color: #10b981;
-        color: white;
-    }
-    
-    .step-active {
-        background-color: #3b82f6;
-        color: white;
-        transform: scale(1.05);
-        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-    }
-    
-    .step-pending {
-        background-color: #e5e7eb;
-        color: #6b7280;
-    }
-    
-    .step-item:hover {
-        transform: scale(1.02);
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-    
         .footer-section {
         padding: 1rem;
     }
@@ -120,28 +74,6 @@ if 'current_step' not in st.session_state:
     st.session_state.training_results = {}
     st.session_state.selected_resampling = 'none'
     st.session_state.feature_importance = None
-
-# Progress Steps with clickable navigation
-steps = [
-    "📤 Upload Data",
-    "🔧 Preprocessing", 
-    "📊 Analisis Data",
-    "📈 Evaluasi",
-    "🔍 Interpretasi LIME"
-]
-
-# Main header
-st.markdown('<div class="main-header">🛡️ Fraud Detection System Dashboard</div>', unsafe_allow_html=True)
-st.markdown('<div class="sub-header">Advanced AI-Powered Transaction Analysis</div>', unsafe_allow_html=True)
-
-# Description
-st.markdown("""
-<div class="description-text">
-Dashboard ini menggunakan Algoritma Machine Learning <span class="highlight-text">Extreme Learning Machine (ELM)</span> 
-yang telah terintegrasi dengan <span class="highlight-text">LIME (Local Interpretable Model-agnostic Explanations)</span> 
-untuk mendeteksi fraud dengan akurasi tinggi dan memberikan penjelasan yang dapat dipahami.
-</div>
-""", unsafe_allow_html=True)
 
 # Create clickable step buttons
 col1, col2, col3, col4, col5 = st.columns(5)
@@ -166,11 +98,11 @@ with col5:
         st.session_state.current_step = 5
         st.rerun()
 
-# Progress bar
-progress_percentage = (st.session_state.current_step / len(steps)) * 100
-st.progress(progress_percentage / 100)
-
 # Helper functions
+@st.cache_data
+def load_data(uploaded_file):
+    return pd.read_csv(uploaded_file)
+
 def handle_missing_values(df):
     """Handle missing values according to requirements"""
     df_cleaned = df.copy()
@@ -454,6 +386,19 @@ def create_confusion_matrix_plot(cm):
 
 # Main content based on current step
 if st.session_state.current_step == 1:
+    # Main header
+    st.markdown('<div class="main-header">🛡️ Fraud Detection System Dashboard</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sub-header">Advanced AI-Powered Transaction Analysis</div>', unsafe_allow_html=True)
+
+    # Description
+    st.markdown("""
+    <div class="description-text">
+    Dashboard ini menggunakan Algoritma Machine Learning <span class="highlight-text">Extreme Learning Machine (ELM)</span> 
+    yang telah terintegrasi dengan <span class="highlight-text">LIME (Local Interpretable Model-agnostic Explanations)</span> 
+    untuk mendeteksi fraud dengan akurasi tinggi dan memberikan penjelasan yang dapat dipahami.
+    </div>
+    """, unsafe_allow_html=True)
+
     # Step 1: Upload Data
     st.header("📤 Upload Data Transaksi")
     
