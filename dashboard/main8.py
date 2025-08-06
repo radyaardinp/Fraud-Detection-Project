@@ -78,7 +78,6 @@ if 'current_step' not in st.session_state:
 # Main header
 st.markdown('<div class="main-header">🛡️ Fraud Detection System Dashboard</div>', unsafe_allow_html=True)
 st.markdown('<div class="sub-header">Advanced AI-Powered Transaction Analysis</div>', unsafe_allow_html=True)
-st.markdown("<br>", unsafe_allow_html=True)
 
 if st.session_state.current_step == 1:
     # Description
@@ -91,6 +90,7 @@ if st.session_state.current_step == 1:
     """, unsafe_allow_html=True)
 
 #navigation button
+st.markdown("<br>", unsafe_allow_html=True)
 col1, col2, col3, col4, col5 = st.columns(5)
 with col1:
     if st.button("📤 Upload Data", key="nav1", use_container_width=True):
