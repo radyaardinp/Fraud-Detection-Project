@@ -104,22 +104,8 @@ st.markdown("""
         box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
     
-    .footer {
-        background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
-        color: white;
-        padding: 3rem 2rem;
-        border-radius: 15px;
-        margin-top: 3rem;
-        text-align: center;
-    }
-    
         .footer-section {
         padding: 1rem;
-    }
-    
-    .footer-section h4 {
-        color: #60a5fa;
-        margin-bottom: 1rem;
     }
     
 </style>
@@ -135,6 +121,15 @@ if 'current_step' not in st.session_state:
     st.session_state.selected_resampling = 'none'
     st.session_state.feature_importance = None
 
+# Progress Steps with clickable navigation
+steps = [
+    "📤 Upload Data",
+    "🔧 Preprocessing", 
+    "📊 Analisis Data",
+    "📈 Evaluasi",
+    "🔍 Interpretasi LIME"
+]
+
 # Main header
 st.markdown('<div class="main-header">🛡️ Fraud Detection System Dashboard</div>', unsafe_allow_html=True)
 st.markdown('<div class="sub-header">Advanced AI-Powered Transaction Analysis</div>', unsafe_allow_html=True)
@@ -147,28 +142,6 @@ yang telah terintegrasi dengan <span class="highlight-text">LIME (Local Interpre
 untuk mendeteksi fraud dengan akurasi tinggi dan memberikan penjelasan yang dapat dipahami.
 </div>
 """, unsafe_allow_html=True)
-
-
-# Progress Steps with clickable navigation
-steps = [
-    "📤 Upload Data",
-    "🔧 Preprocessing", 
-    "📊 Analisis Data",
-    "📈 Evaluasi",
-    "🔍 Interpretasi LIME"
-]
-
-progress_html = '<div class="step-indicator">'
-for i, step in enumerate(steps, 1):
-    if i < st.session_state.current_step:
-        progress_html += f'<div class="step-item step-completed" onclick="window.parent.postMessage({{type: \'streamlit:setComponentValue\', value: {i}}}, \'*\')">{step}</div>'
-    elif i == st.session_state.current_step:
-        progress_html += f'<div class="step-item step-active">{step}</div>'
-    else:
-        progress_html += f'<div class="step-item step-pending" onclick="window.parent.postMessage({{type: \'streamlit:setComponentValue\', value: {i}}}, \'*\')">{step}</div>'
-progress_html += '</div>'
-
-st.markdown(progress_html, unsafe_allow_html=True)
 
 # Create clickable step buttons
 col1, col2, col3, col4, col5 = st.columns(5)
