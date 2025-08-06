@@ -552,45 +552,44 @@ elif st.session_state.current_step == 2:
         # Feature Selection Section
         st.subheader("🎯 Feature Selection (Mutual Information)")
         
-        # Pastikan kolom target tersedia
         if 'fraud' in st.session_state.data.columns:
-            # Pisahkan fitur dan target
-            X = st.session_state.data.drop(columns=['fraud'], errors='ignore')
-            y = (st.session_state.data['fraud'] == 'Fraud').astype(int)
-        
-            # Ambil fitur numerik
+            # Prepare features and target
+            X = st.session_state.data.drop(['is_fraud'], axis=1)
+            y = st.session_state.data['is_fraud']
+            
+            # Remove non-numeric columns for MI calculation
             numeric_features = X.select_dtypes(include=[np.number])
-        
-            if not numeric_features.empty:
-                # Slider threshold
-                threshold = st.slider("Pilih Threshold MI:", 0.001, 0.1, 0.01, 0.001)
-        
-                if st.button("🔍 Hitung Feature Importance"):
-                    fi_df, selected = calculate_feature_importance_mi(numeric_features, y, threshold)
-                    st.session_state.feature_importance = fi_df
-        
+            
+            if len(numeric_features.columns) > 0:
+                threshold = st.slider("MI Threshold:", 0.001, 0.1, 0.01, 0.001, key="mi_threshold")
+                
+                if st.button("Hitung Feature Importance", key="calc_feature_importance"):
+                    feature_importance, selected_features = calculate_feature_importance_mi(numeric_features, y, threshold)
+                    st.session_state.feature_importance = feature_importance
+                    
                     col1, col2 = st.columns(2)
-        
+                    
                     with col1:
-                        st.markdown("**Top 10 Fitur Berdasarkan MI Score**")
+                        st.write("**Feature Importance (MI Score)**")
                         fig = px.bar(
-                            fi_df.head(10), x='importance', y='feature',
-                            orientation='h', title="Top 10 MI Features"
+                            feature_importance.head(10), 
+                            x='importance', 
+                            y='feature', 
+                            orientation='h',
+                            title="Top 10 Features by MI Score"
                         )
                         st.plotly_chart(fig, use_container_width=True)
-        
+                    
                     with col2:
-                        st.markdown("**Fitur Terpilih**")
-                        st.dataframe(selected, use_container_width=True)
-        
+                        st.write("**Selected Features**")
+                        st.dataframe(selected_features, use_container_width=True)
+                        
                         st.info(f"""
-                        **📌 Ringkasan:**
-                        - Total fitur dianalisis: {len(fi_df)}
-                        - Fitur terpilih: {len(selected)}
-                        - Threshold MI: {threshold}
+                        **Summary:**
+                        - Total features: {len(feature_importance)}
+                        - Selected features: {len(selected_features)}
+                        - Threshold: {threshold}
                         """)
-            else:
-                st.warning("⚠️ Tidak ada fitur numerik yang tersedia untuk analisis Mutual Information.")
 
         st.markdown("---")
         
