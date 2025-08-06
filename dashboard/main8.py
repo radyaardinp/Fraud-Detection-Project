@@ -275,9 +275,9 @@ class FraudDetectionLabeler:
         return 'Fraud' if row['mismatch_ratio'] > self.config['fraud_rules']['mismatch_ratio_threshold'] else 'Not Fraud'
 
     def apply_rule_based_labeling(self, df):
-        df = self._ensure_columns(df)
-        df = self._add_metrics(df)
-        df = self._add_fail_intervals(df)
+        df = self.ensure_columns(df)
+        df = self.add_metrics(df)
+        df = self._dd_fail_intervals(df)
 
         df['mismatch'] = abs(df['inquiryAmount'] - df['settlementAmount'])
         df['mismatch_ratio'] = np.where(df['inquiryAmount'] == 0, 0, df['mismatch'] / df['inquiryAmount'])
