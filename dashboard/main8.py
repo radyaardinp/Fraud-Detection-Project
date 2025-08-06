@@ -429,9 +429,42 @@ if st.session_state.current_step == 1:
            st.info(f"**File Type:** {uploaded_file.type}")
 
         # Data preview table
-        st.markdown("### 📋 Preview Data")
         st.dataframe(st.session_state.data.head(15), use_container_width=True)
         
+        # Column information
+        st.markdown("### 📊 Column Information")
+        col_info = pd.DataFrame({
+            'Column': st.session_state.data.columns,
+            'Data Type': st.session_state.data.dtypes})
+        
+        # Buat keterangan manual untuk setiap kolom
+        manual_descriptions = {
+            'id': 'Identitas unik transaksi',
+            'createdTime': 'Waktu ketika transaksi dibuat',
+            'updateTime': 'Waktu ketika transaksi diperbarui',
+            'currency': 'Mata uang yang digunakan',
+            'amount': 'Jumlah nominal transaksi',
+            'inquiryId': 'Identitas unik dari proses inquiry',
+            'merchantId': 'Identitas unik dari merchant',
+            'type': 'Tipe transaksi',
+            'paymentSource': 'Sumber pembayaran',
+            'status': 'Status akhir transaksi',
+            'statusCode': 'Kode status numerik',
+            'networkReferenceId': 'Identitas rujukan jaringan pembayaran',
+            'settlementAmount': 'Jumlah nominal transaksi yang dikirimkan ke merchant',
+            'inquiryId': 'Jumlah nominal yang direquest pada tahap inquiry',
+            'discountAmount': 'Jumlah nominal diskon',
+            'feeAmount': 'Biaya Transaksi',
+            'typeToken': 'Jenis tokenisasi'}
+
+        # Fungsi untuk mendapatkan keterangan
+        def get_description(col_name):
+            return manual_descriptions.get(col_name, 'Tidak ada deskripsi')
+
+        # Menambahkan kolom keterangan
+        col_info['Keterangan'] = col_info['Column'].apply(get_description)
+
+        st.dataframe(col_info, use_container_width=True)
         
         col1, col2, col3 = st.columns([6, 2, 2])  
         with col3:
