@@ -449,7 +449,7 @@ elif st.session_state.current_step == 2:
         """)
 
         # Cek apakah data mentah sudah disimpan
-        if 'fraud' not in st.session_state:
+        if 'raw_data' not in st.session_state:
             st.session_state.raw_data = st.session_state.data.copy()
 
         # Dataframe sebelum labelling
