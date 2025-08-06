@@ -456,9 +456,9 @@ elif st.session_state.current_step == 2:
         # Aturan Fraud Detection Labeling
         st.info("""
         **3 Aturan Deteksi Fraud:**
-        1. **Rule 1**: High frequency + amount + failures
-        2. **Rule 2**: Failure patterns analysis  
-        3. **Rule 3**: Mismatch detection  
+        1. **Rule 1**: Parameter untuk memantau transaksi berdasarkan jumlah frekuensi, nilai nominal, rasio transaksi gagal, dan perbedaan nilai antara tahapan otorisasi dan penyelesaian (Settlement) 
+        2. **Rule 2**: Parameter yang difokuskan untuk mengindentifikasi adanya transaksi yang gagal  
+        3. **Rule 3**: Parameter untuk mendeteksi transaksi yang mengalami peningkatan lebih dari 100%  
         
         **Threshold**: 95th percentile untuk outlier detection
         """)
@@ -487,45 +487,44 @@ elif st.session_state.current_step == 2:
         st.markdown("---")
         
         # Outlier Detection Section
-        st.subheader("📉 Penanganan Outlier Otomatis (IQR)")
-
+        st.subheader("📉 Penanganan Outlier Otomatis Menggunakan Metode IQR")
         numeric_cols = st.session_state.data.select_dtypes(include=[np.number]).columns.tolist()
-        
-        if 'outlier_handled' not in st.session_state:
-            # Simpan data awal untuk plot before
-            st.session_state.outlier_before = st.session_state.data.copy()
-        
-        if st.button("🚨 Terapkan Penanganan Outlier (Remove by IQR)"):
+
+        # Tombol untuk periksa outlier
+        if st.button("🔍 Periksa Outlier", key="check_outliers"):
+            st.session_state.outlier_checked = True
+
+        # Tampilkan boxplot sebelum penanganan jika sudah diperiksa
+        if st.session_state.get("outlier_checked", False) and not st.session_state.get("outlier_handled", False):
+            st.markdown("### 📈 Outlier Sebelum Penanganan")
+            fig, axes = plt.subplots(2, 3, figsize=(18, 8))
+            axes = axes.flatten()
+            for i, col in enumerate(numeric_cols[:6]):
+                sns.boxplot(x=st.session_state.data[col], ax=axes[i])
+                axes[i].set_title(f"Boxplot {col}")
+            st.pyplot(fig)
+
+        if st.button("🚨 Terapkan Penanganan Outlier "):
             st.session_state.data = handle_outliers_iqr(st.session_state.data, numeric_cols)
             st.session_state.outlier_handled = True
             st.rerun()
         
-        if 'outlier_handled' in st.session_state:
-            st.success("✅ Outlier berhasil ditangani menggunakan metode IQR!")
+        # Tampilkan boxplot sesudah penanganan
+        if st.session_state.get("outlier_handled", False):
+            st.markdown("### ✅ Outlier Setelah Penanganan")
+            fig, axes = plt.subplots(2, 3, figsize=(18, 8))
+            axes = axes.flatten()
         
-            # Plot before
-            st.markdown("### 📊 Boxplot Sebelum Penanganan")
-            fig1, axes1 = plt.subplots(1, min(3, len(numeric_cols)), figsize=(18, 4))
-            if len(numeric_cols) == 1:
-                axes1 = [axes1]
-            for i, col in enumerate(numeric_cols[:3]):
-                sns.boxplot(x=st.session_state.outlier_before[col], ax=axes1[i])
-                axes1[i].set_title(f"Before: {col}")
-            st.pyplot(fig1)
-        
-            # Plot after
-            st.markdown("### 📊 Boxplot Setelah Penanganan")
-            fig2, axes2 = plt.subplots(1, min(3, len(numeric_cols)), figsize=(18, 4))
-            if len(numeric_cols) == 1:
-                axes2 = [axes2]
-            for i, col in enumerate(numeric_cols[:3]):
-                sns.boxplot(x=st.session_state.data[col], ax=axes2[i])
-                axes2[i].set_title(f"After: {col}")
-            st.pyplot(fig2)
-        
-            # Reset flag agar tidak muncul terus
-            del st.session_state.outlier_handled
+            for i, col in enumerate(numeric_cols[:6]):
+                sns.boxplot(x=st.session_state.data[col], ax=axes[i])
+                axes[i].set_title(f"Boxplot {col}")
+            st.pyplot(fig)
 
+            # Reset button
+            if st.button("🔄 Ulangi Pemeriksaan"):
+                st.session_state.outlier_checked = False
+                st.session_state.outlier_handled = False
+                st.rerun()
         
         st.markdown("---")
         
