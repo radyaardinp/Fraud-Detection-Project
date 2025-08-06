@@ -277,7 +277,7 @@ class FraudDetectionLabeler:
     def apply_rule_based_labeling(self, df):
         df = self.ensure_columns(df)
         df = self.add_metrics(df)
-        df = self._dd_fail_intervals(df)
+        df = self.add_fail_intervals(df)
 
         df['mismatch'] = abs(df['inquiryAmount'] - df['settlementAmount'])
         df['mismatch_ratio'] = np.where(df['inquiryAmount'] == 0, 0, df['mismatch'] / df['inquiryAmount'])
@@ -285,9 +285,9 @@ class FraudDetectionLabeler:
 
         thresholds = self._calculate_thresholds(df)
 
-        df['label1'] = df.apply(lambda r: self._rule_1(r, thresholds), axis=1)
-        df['label2'] = df.apply(self._rule_2, axis=1)
-        df['label3'] = df.apply(self._rule_3, axis=1)
+        df['label1'] = df.apply(lambda r: self.rule_1(r, thresholds), axis=1)
+        df['label2'] = df.apply(self.rule_2, axis=1)
+        df['label3'] = df.apply(self.rule_3, axis=1)
         df['fraud'] = df[['label1', 'label2', 'label3']].apply(lambda r: 'Fraud' if 'Fraud' in r.values else 'Not Fraud', axis=1)
 
         return df
@@ -438,7 +438,7 @@ elif st.session_state.current_step == 2:
         # Dataframe sebelum labelling
         if 'fraud' not in st.session_state.data.columns:
             st.markdown("### 📋 Data Sebelum Diberikan Label")
-            st.dataframe(st.session_state.data.head(), use_container_width=True)
+            st.dataframe(st.session_state.data.head(10), use_container_width=True)
 
         # Button
         if 'fraud' not in st.session_state.data.columns:
@@ -453,7 +453,7 @@ elif st.session_state.current_step == 2:
         # 4. Dataframe setelah labelling
         if 'fraud' in st.session_state.data.columns:
             st.markdown("### ✅ Data Setelah Diberi Label")
-            st.dataframe(st.session_state.data.head(), use_container_width=True)
+            st.dataframe(st.session_state.data.head(10), use_container_width=True)
 
         st.markdown("---")
         
