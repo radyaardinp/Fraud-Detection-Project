@@ -9,7 +9,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
+from sklearn.metrics import classification_report, confusion_matrix
 from sklearn.feature_selection import mutual_info_classif
 import warnings
 warnings.filterwarnings('ignore')
@@ -114,36 +114,48 @@ with col5:
         st.session_state.current_step = 5
         st.rerun()
 
-# Helper functions
-
+# ======= Pembuatan Fungsi =======
 @st.cache_data
 def load_data(uploaded_file):
     return pd.read_csv(uploaded_file)
 
-def handle_missing_values(df):
-    """Handle missing values according to requirements"""
-    df_cleaned = df.copy()
-    
-    # Fill numeric columns with 0 (especially amount columns)
-    numeric_cols = df_cleaned.select_dtypes(include=[np.number]).columns
-    for col in numeric_cols:
-        if 'amount' in col.lower():
-            df_cleaned[col] = df_cleaned[col].fillna(0)
-        else:
-            df_cleaned[col] = df_cleaned[col].fillna(df_cleaned[col].mean())
-    
-    # Fill categorical columns with "unknown"
-    categorical_cols = df_cleaned.select_dtypes(include=['object']).columns
-    for col in categorical_cols:
-        if col.lower() in ['status', 'type'] or 'status' in col.lower() or 'type' in col.lower():
-            df_cleaned[col] = df_cleaned[col].fillna("unknown")
-        else:
-            df_cleaned[col] = df_cleaned[col].fillna("unknown")
-    
-    return df_cleaned
+#mengubah tipe data
+def convert_data_types(df):
+    df = df.copy()
+    # Convert to datetime
+    if 'updatedTime' in df.columns:
+        df['updatedTime'] = pd.to_datetime(df['updatedTime'], dayfirst=True, format='mixed', errors='coerce')
+    if 'createdTime' in df.columns:
+        df['createdTime'] = pd.to_datetime(df['createdTime'], errors='coerce')
 
+    # Convert to float
+    float_cols = ['amount', 'settlementAmount', 'feeAmount', 'discountAmount', 'inquiryAmount']
+    for col in float_cols:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors='coerce')
+
+    # Convert to categorical
+    categorical_cols = ['merchantId','paymentSource', 'status','statusCode']
+    for col in categorical_cols:
+        if col in df.columns:
+            df[col] = df[col].astype('category')
+    return df
+
+#mengatasi missing value    
+def handle_missing_values(df):
+    df = df.copy()
+
+    for col in df.columns:
+        if df[col].isnull().sum() > 0:
+            if df[col].dtype.name in ['float64', 'int64']:
+                df[col] = df[col].fillna(0)
+            elif df[col].dtype.name in ['object', 'category']:
+                df[col] = df[col].fillna('nan')
+
+    return df
+
+#Deteksi outlier
 def detect_outliers_iqr(df, column):
-    """Detect outliers using IQR method"""
     Q1 = df[column].quantile(0.25)
     Q3 = df[column].quantile(0.75)
     IQR = Q3 - Q1
@@ -152,20 +164,18 @@ def detect_outliers_iqr(df, column):
     outliers = (df[column] < lower_bound) | (df[column] > upper_bound)
     return outliers, lower_bound, upper_bound
 
+#Menghitung Mutual information untuk feature selection
 def calculate_feature_importance_mi(X, y, threshold=0.01):
-    """Calculate feature importance using Mutual Information"""
-    # Encode categorical variables if needed
     X_encoded = X.copy()
-    for col in X_encoded.select_dtypes(include=['object']).columns:
+    for col in X_encoded.select_dtypes(include=['object','category']).columns:
         X_encoded[col] = pd.Categorical(X_encoded[col]).codes
     
-    # Calculate MI scores
     mi_scores = mutual_info_classif(X_encoded, y, random_state=42)
     
     # Create feature importance dataframe
     feature_importance = pd.DataFrame({
         'feature': X.columns,
-        'importance': mi_scores
+        'importance score': mi_scores
     }).sort_values('importance', ascending=False)
     
     # Filter features above threshold
@@ -173,9 +183,8 @@ def calculate_feature_importance_mi(X, y, threshold=0.01):
     
     return feature_importance, selected_features
 
+#Fraud Rule-Based Labeling
 class FraudDetectionLabeler:
-    """Rule-based fraud detection labeler based on provided Python code"""
-    
     def __init__(self):
         self.config = {
             'outlier_threshold': 0.95,
@@ -185,212 +194,106 @@ class FraudDetectionLabeler:
                 'fail_ratio_medium': 0.5,
                 'fail_interval_threshold': 300,  # seconds
                 'mismatch_ratio_threshold': 0.1
-            },
-            'keep_intermediate_columns': True
+            }
         }
-    
-    def calculate_daily_metrics(self, df):
-        """Calculate daily transaction metrics"""
+
+    def ensure_columns(self, df):
+        defaults = {
+            'amount': 0, 'inquiryAmount': 0, 'settlementAmount': 0,
+            'merchantId': 'MERCHANT_001', 'createdTime': pd.Timestamp.now(),
+            'status': 'success'
+        }
+        for col, default in defaults.items():
+            if col not in df.columns:
+                df[col] = default
+        return df
+
+    def add_metrics(self, df):
         df = df.copy()
-        
-        # Ensure required columns exist or create defaults
-        if 'createdTime' not in df.columns:
-            df['createdTime'] = pd.Timestamp.now()
-        if 'merchantId' not in df.columns:
-            df['merchantId'] = 'MERCHANT_001'
-        if 'status' not in df.columns:
-            df['status'] = 'success'
-            
         df['createdTime'] = pd.to_datetime(df['createdTime'], errors='coerce')
         df['createdDate'] = df['createdTime'].dt.date
         df['is_declined'] = df['status'].str.lower() == 'declined'
-        
-        # Daily frequency calculation
-        frekuensi_harian = df.groupby(['merchantId', 'createdDate']).size().reset_index(name='daily_freq')
-        df = df.merge(frekuensi_harian, on=['merchantId', 'createdDate'])
-        
-        # Failed transactions per day
-        failed_per_day = df.groupby(['merchantId', 'createdDate'])['is_declined'].sum().reset_index(name='failed_count')
-        df = df.merge(failed_per_day, on=['merchantId', 'createdDate'])
-        
-        # Average failed per merchant
-        avg_failed_per_merchant = failed_per_day.groupby('merchantId')['failed_count'].mean().reset_index(name='avg_failed')
-        df = df.merge(avg_failed_per_merchant, on='merchantId', how='left')
-        df['avg_failed'] = df['avg_failed'].fillna(0)
-        
-        # Failure ratio
-        df['fail_ratio'] = df['failed_count'] / np.maximum(df['daily_freq'], 1)
-        
-        return df
-    
-    def calculate_failure_intervals(self, df):
-        """Calculate time intervals between failed transactions"""
-        df = df.copy()
-        
-        # Calculate failure intervals
-        failed_trx = df[df['is_declined']].copy()
-        if len(failed_trx) > 0:
-            failed_trx = failed_trx.sort_values(by=['merchantId', 'createdTime'])
-            failed_trx['prev_failed_time'] = failed_trx.groupby('merchantId')['createdTime'].shift(1)
-            failed_trx['failed_time_diff'] = (failed_trx['createdTime'] - failed_trx['prev_failed_time']).dt.total_seconds()
-            failed_trx['createdDate'] = failed_trx['createdTime'].dt.date
 
-            failed_diff_daily = failed_trx.groupby(['merchantId', 'createdDate'])['failed_time_diff'].mean().reset_index(name='avg_fail_interval')
-            failed_count_per_day = failed_trx.groupby(['merchantId', 'createdDate']).size().reset_index(name='count_failed')
-            failed_diff_daily = failed_diff_daily.merge(failed_count_per_day, on=['merchantId', 'createdDate'])
-            failed_diff_daily['avg_fail_interval'] = np.where(
-                failed_diff_daily['count_failed'] < 2,
-                0,
-                failed_diff_daily['avg_fail_interval']
-            )
-            df = df.merge(failed_diff_daily[['merchantId', 'createdDate', 'avg_fail_interval']], on=['merchantId', 'createdDate'], how='left')
-        
-        df['avg_fail_interval'] = df['avg_fail_interval'].fillna(0)
+        # Daily frequency & failure count
+        daily = df.groupby(['merchantId', 'createdDate'])
+        df = df.merge(daily.size().reset_index(name='daily_freq'), on=['merchantId', 'createdDate'])
+        df = df.merge(daily['is_declined'].sum().reset_index(name='failed_count'), on=['merchantId', 'createdDate'])
+
+        # Avg failed per merchant & ratio
+        avg_failed = df.groupby('merchantId')['failed_count'].transform('mean').fillna(0)
+        df['avg_failed'] = avg_failed
+        df['fail_ratio'] = df['failed_count'] / df['daily_freq'].clip(lower=1)
         return df
-    
+
+    def add_fail_intervals(self, df):
+        failed = df[df['is_declined']].copy()
+        if not failed.empty:
+            failed.sort_values(by=['merchantId', 'createdTime'], inplace=True)
+            failed['prev_time'] = failed.groupby('merchantId')['createdTime'].shift(1)
+            failed['failed_time_diff'] = (failed['createdTime'] - failed['prev_time']).dt.total_seconds()
+            failed['createdDate'] = failed['createdTime'].dt.date
+
+            interval = failed.groupby(['merchantId', 'createdDate'])['failed_time_diff'].mean().reset_index()
+            interval['failed_time_diff'] = interval['failed_time_diff'].fillna(0)
+            df = df.merge(interval, on=['merchantId', 'createdDate'], how='left')
+        df['failed_time_diff'] = df['failed_time_diff'].fillna(0)
+        return df
+
     def calculate_thresholds(self, df):
-        """Calculate dynamic thresholds for fraud detection"""
-        threshold_percentile = self.config['outlier_threshold']
-        
-        thresholds = {
-            'daily_freq': df['daily_freq'].quantile(threshold_percentile),
-            'amount': df['amount'].quantile(threshold_percentile),
-            'failed_count': df['failed_count'].quantile(threshold_percentile),
-            'mismatch': df['mismatch'].quantile(threshold_percentile)
+        q = self.config['outlier_threshold']
+        return {
+            'daily_freq': df['daily_freq'].quantile(q),
+            'amount': df['amount'].quantile(q),
+            'failed_count': df['failed_count'].quantile(q),
+            'mismatch': df['mismatch'].quantile(q)
         }
-        
-        return thresholds
-    
-    def apply_fraud_rule_1(self, df, thresholds):
-        """Fraud detection rule 1: High frequency + amount + failures"""
-        def detect_anomaly1(row):
-            if row['daily_freq'] > thresholds['daily_freq']:
-                if row['amount'] > thresholds['amount']:
-                    if row['failed_count'] > thresholds['failed_count']:
-                        if row['mismatch'] > thresholds['mismatch']:
-                            return 'Fraud'
-                        else:
-                            return 'Fraud'
-                    else:
-                        if row['mismatch'] > thresholds['mismatch']:
-                            if row['mismatch_ratio'] < 0.01 and row['failed_count'] == 0:
-                                return 'Not Fraud'
-                            else:
-                                return 'Fraud'
-                        else:
-                            return 'Not Fraud'
-                else:
-                    if row['failed_count'] > thresholds['failed_count'] and row['mismatch'] > thresholds['mismatch']:
-                        return 'Fraud'
-                    else:
-                        return 'Not Fraud'
-            else:
-                if row['amount'] > thresholds['amount']:
-                    if row['failed_count'] > thresholds['failed_count'] or row['mismatch'] > thresholds['mismatch']:
-                        return 'Fraud'
-                    else:
-                        return 'Not Fraud'
-                else:
-                    return 'Not Fraud'
-        
-        return df.apply(detect_anomaly1, axis=1)
-    
-    def apply_fraud_rule_2(self, df):
-        """Fraud detection rule 2: Failure patterns"""
-        config = self.config['fraud_rules']
-        
-        def detect_anomaly2(row):
-            if row['failed_count'] > config['failed_multiplier'] * row['avg_failed']:
-                if row['fail_ratio'] > config['fail_ratio_high']:
-                    if row['avg_fail_interval'] < config['fail_interval_threshold']:
-                        return 'Fraud'
-                    else:
-                        return 'Fraud'
-                else:
-                    if row['avg_fail_interval'] < config['fail_interval_threshold']:
-                        return 'Fraud'
-                    else:
-                        return 'Not Fraud'
-            else:
-                if row['fail_ratio'] > config['fail_ratio_medium']:
+
+    def rule_1(self, row, t):
+        if row['daily_freq'] > t['daily_freq']:
+            if row['amount'] > t['amount']:
+                if row['failed_count'] > t['failed_count']:
                     return 'Fraud'
-                else:
-                    return 'Not Fraud'
-        
-        return df.apply(detect_anomaly2, axis=1)
-    
-    def apply_fraud_rule_3(self, df):
-        """Fraud detection rule 3: Mismatch detection"""
-        threshold = self.config['fraud_rules']['mismatch_ratio_threshold']
-        return df['mismatch_ratio'].apply(lambda x: 'Fraud' if x > threshold else 'Not Fraud')
-    
+                elif row['mismatch'] > t['mismatch']:
+                    return 'Fraud' if not (row['mismatch_ratio'] < 0.01 and row['failed_count'] == 0) else 'Not Fraud'
+            elif row['failed_count'] > t['failed_count'] and row['mismatch'] > t['mismatch']:
+                return 'Fraud'
+        elif row['amount'] > t['amount']:
+            if row['failed_count'] > t['failed_count'] or row['mismatch'] > t['mismatch']:
+                return 'Fraud'
+        return 'Not Fraud'
+
+    def rule_2(self, row):
+        c = self.config['fraud_rules']
+        if row['failed_count'] > c['failed_multiplier'] * row['avg_failed']:
+            if row['fail_ratio'] > c['fail_ratio_high'] or row['failed_time_diff'] < c['fail_interval_threshold']:
+                return 'Fraud'
+        elif row['fail_ratio'] > c['fail_ratio_medium']:
+            return 'Fraud'
+        return 'Not Fraud'
+
+    def rule_3(self, row):
+        return 'Fraud' if row['mismatch_ratio'] > self.config['fraud_rules']['mismatch_ratio_threshold'] else 'Not Fraud'
+
     def apply_rule_based_labeling(self, df):
-        """Apply rule-based fraud labeling with detailed tracking"""
-        df = df.copy()
-        
-        # Ensure required columns exist with defaults
-        required_columns = {
-            'amount': 0,
-            'inquiryAmount': 0,
-            'settlementAmount': 0,
-            'merchantId': 'MERCHANT_001',
-            'createdTime': pd.Timestamp.now(),
-            'status': 'success'
-        }
-        
-        for col, default_val in required_columns.items():
-            if col not in df.columns:
-                df[col] = default_val
-        
-        # Calculate daily metrics
-        df = self.calculate_daily_metrics(df)
-        
-        # Calculate additional features
-        df['is_nominal_tinggi'] = df['amount'] > 8_000_000
+        df = self._ensure_columns(df)
+        df = self._add_metrics(df)
+        df = self._add_fail_intervals(df)
+
         df['mismatch'] = abs(df['inquiryAmount'] - df['settlementAmount'])
-        
-        # Calculate failure intervals
-        df = self.calculate_failure_intervals(df)
-        
-        # Mismatch ratio
-        df['mismatch_ratio'] = np.where(
-            df['inquiryAmount'] == 0,
-            0,
-            abs(df['settlementAmount'] - df['inquiryAmount']) / df['inquiryAmount']
-        )
-        
-        # Calculate thresholds
-        thresholds = self.calculate_thresholds(df)
-        
-        # Apply fraud rules
-        df['label1'] = self.apply_fraud_rule_1(df, thresholds)
-        df['label2'] = self.apply_fraud_rule_2(df)
-        df['label3'] = self.apply_fraud_rule_3(df)
-        
-        # Combine labels
-        def detect_combined_anomaly(row):
-            results = [row['label1'], row['label2'], row['label3']]
-            return 'Fraud' if 'Fraud' in results else 'Not Fraud'
-        
-        df['fraud'] = df.apply(detect_combined_anomaly, axis=1)
-        df['is_fraud'] = (df['fraud'] == 'Fraud').astype(int)
-        
-        # Generate statistics
-        label_stats = {
-            'rule1_fraud_count': (df['label1'] == 'Fraud').sum(),
-            'rule2_fraud_count': (df['label2'] == 'Fraud').sum(),
-            'rule3_fraud_count': (df['label3'] == 'Fraud').sum(),
-            'combined_fraud_count': (df['fraud'] == 'Fraud').sum(),
-            'total_transactions': len(df),
-            'fraud_percentage': (df['fraud'] == 'Fraud').mean() * 100,
-            'thresholds_used': thresholds
-        }
-        
-        return df, label_stats
+        df['mismatch_ratio'] = np.where(df['inquiryAmount'] == 0, 0, df['mismatch'] / df['inquiryAmount'])
+        df['is_nominal_tinggi'] = df['amount'] > 8_000_000
 
+        thresholds = self._calculate_thresholds(df)
 
-def create_confusion_matrix_plot(cm):
-    """Create confusion matrix visualization"""
+        df['label1'] = df.apply(lambda r: self._rule_1(r, thresholds), axis=1)
+        df['label2'] = df.apply(self._rule_2, axis=1)
+        df['label3'] = df.apply(self._rule_3, axis=1)
+        df['fraud'] = df[['label1', 'label2', 'label3']].apply(lambda r: 'Fraud' if 'Fraud' in r.values else 'Not Fraud', axis=1)
+
+        return df
+        
+#Membuat plot visualisasi confussion matrix
+def confusion_matrix_plot(cm):
     fig = px.imshow(cm, 
                     text_auto=True, 
                     aspect="auto",
@@ -401,7 +304,8 @@ def create_confusion_matrix_plot(cm):
     fig.update_layout(title="Confusion Matrix", width=400, height=400)
     return fig
 
-# Main content based on current step
+
+# ========== Halaman UI Dashboard ==========
 if st.session_state.current_step == 1:
     # Step 1: Upload Data
     st.header("📤 Upload Data Transaksi")
@@ -422,20 +326,20 @@ if st.session_state.current_step == 1:
         # File details
         col1, col2 = st.columns(2)
         with col1:
-            st.info(f"**Rows:** {len(st.session_state.data):,}")
-            st.info(f"**Columns:** {st.session_state.data.shape[1]}")
+            st.info(f"**Jumlah Baris:** {len(st.session_state.data):,}")
+            st.info(f"**Jumlah Kolom:** {st.session_state.data.shape[1]}")
         with col2:
-           st.info(f"**File Size:** {uploaded_file.size / (1024*1024):.2f} MB")
-           st.info(f"**File Type:** {uploaded_file.type}")
+           st.info(f"**Ukuran Berkas:** {uploaded_file.size / (1024*1024):.2f} MB")
+           st.info(f"**Tipe Berkas:** {uploaded_file.type}")
 
         # Data preview table
         st.dataframe(st.session_state.data.head(15), use_container_width=True)
         
         # Column information
-        st.markdown("### 📊 Column Information")
+        st.markdown("### 📊 Informasi Kolom")
         col_info = pd.DataFrame({
-            'Column': st.session_state.data.columns,
-            'Data Type': st.session_state.data.dtypes})
+            'Kolom': st.session_state.data.columns,
+            'Tipe Data': st.session_state.data.dtypes})
         
         # Buat keterangan manual untuk setiap kolom
         manual_descriptions = {
@@ -462,10 +366,11 @@ if st.session_state.current_step == 1:
             return manual_descriptions.get(col_name, 'Tidak ada deskripsi')
 
         # Menambahkan kolom keterangan
-        col_info['Keterangan'] = col_info['Column'].apply(get_description)
+        col_info['Keterangan'] = col_info['Kolom'].apply(get_description)
 
         st.dataframe(col_info, use_container_width=True)
         
+        # tombol selanjutnya
         col1, col2, col3 = st.columns([6, 2, 2])  
         with col3:
             if st.button("➡️ Lanjut ke Preprocessing", type="primary"):
@@ -514,54 +419,42 @@ elif st.session_state.current_step == 2:
         
         else:
             st.success("✅ Tidak ada missing values dalam dataset!")
-
+        
+        st.markdown("---")
+        
         # Rule-Based Labelling Section
         st.subheader("🏷️ Rule-Based Labelling")
+
+        # Aturan Fraud Detection Labeling
+        st.info("""
+        **3 Aturan Deteksi Fraud:**
+        1. **Rule 1**: High frequency + amount + failures
+        2. **Rule 2**: Failure patterns analysis  
+        3. **Rule 3**: Mismatch detection  
         
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.write("**Aturan Fraud Detection**")
-            st.info("""
-            **3 Aturan Deteksi Fraud:**
-            1. **Rule 1**: High frequency + amount + failures
-            2. **Rule 2**: Failure patterns analysis  
-            3. **Rule 3**: Mismatch detection
-            
-            **Threshold**: 95th percentile untuk outlier detection
-            """)
-            
-            if st.button("Terapkan Rule-Based Labelling", key="apply_rules"):
+        **Threshold**: 95th percentile untuk outlier detection
+        """)
+
+        # Dataframe sebelum labelling
+        if 'fraud' not in st.session_state.data.columns:
+            st.markdown("### 📋 Data Sebelum Diberikan Label")
+            st.dataframe(st.session_state.data.head(), use_container_width=True)
+
+        # Button
+        if 'fraud' not in st.session_state.data.columns:
+            if st.button("🚀 Terapkan Rule-Based Labelling", key="apply_rules"):
                 with st.spinner("Menerapkan rule-based labeling..."):
                     labeler = FraudDetectionLabeler()
                     st.session_state.data, label_stats = labeler.apply_rule_based_labeling(st.session_state.data)
                     st.session_state.label_stats = label_stats
                 st.success("✅ Labelling berhasil diterapkan!")
                 st.rerun()
-        
-        with col2:
-            st.write("**Hasil Labelling**")
-            if hasattr(st.session_state, 'label_stats'):
-                stats = st.session_state.label_stats
-                
-                col_a, col_b = st.columns(2)
-                with col_a:
-                    st.metric("Total Transaksi", f"{stats['total_transactions']:,}")
-                    st.metric("Rule 1 Fraud", f"{stats['rule1_fraud_count']:,}")
-                    st.metric("Rule 2 Fraud", f"{stats['rule2_fraud_count']:,}")
-                with col_b:
-                    st.metric("Fraud Percentage", f"{stats['fraud_percentage']:.2f}%")
-                    st.metric("Rule 3 Fraud", f"{stats['rule3_fraud_count']:,}")
-                    st.metric("Combined Fraud", f"{stats['combined_fraud_count']:,}")
-                    
-            elif 'is_fraud' in st.session_state.data.columns:
-                fraud_counts = st.session_state.data['is_fraud'].value_counts()
-                col_normal, col_fraud = st.columns(2)
-                with col_normal:
-                    st.metric("Transaksi Normal", fraud_counts.get(0, 0))
-                with col_fraud:
-                    st.metric("Transaksi Fraud", fraud_counts.get(1, 0))
-        
+
+        # 4. Dataframe setelah labelling
+        if 'fraud' in st.session_state.data.columns:
+            st.markdown("### ✅ Data Setelah Diberi Label")
+            st.dataframe(st.session_state.data.head(), use_container_width=True)
+
         st.markdown("---")
         
         # Outlier Detection Section
@@ -610,106 +503,110 @@ elif st.session_state.current_step == 2:
         
         st.markdown("---")
         
+        # Visualisasi Section
+        st.subheader("📊 Visualisasi Data Fraud Detection")
+
+        col1, col2 = st.columns(2)
+        # 1. Distribusi Payment Source
+        with col1:
+            if 'paymentSource' in st.session_state.data.columns:
+                payment_dist = st.session_state.data['paymentSource'].value_counts()
+                fig = px.bar(
+                    x=payment_dist.index, y=payment_dist.values,
+                    labels={'x': 'Payment Source', 'y': 'Jumlah Transaksi'},
+                    title="Distribusi Payment Source")
+                st.plotly_chart(fig, use_container_width=True)
+        
+        # 2. Distribusi Status Transaksi
+        with col2:
+            if 'status' in st.session_state.data.columns:
+                status_dist = st.session_state.data['status'].value_counts()
+                fig = px.bar(
+                    x=status_dist.index, y=status_dist.values,
+                    labels={'x': 'Status Transaksi', 'y': 'Jumlah Transaksi'},
+                    title="Distribusi Status Transaksi")
+                st.plotly_chart(fig, use_container_width=True)
+        
+        # 3. Distribusi Fraud per Merchant
+        merchant_col = 'merchantId'
+        if 'fraud' in st.session_state.data.columns and merchant_col in st.session_state.data.columns:
+            fraud_per_merchant = st.session_state.data[st.session_state.data['fraud'] == 'Fraud']
+            top_merchant_fraud = fraud_per_merchant[merchant_col].value_counts().head(10)
+            fig = px.bar(
+                x=top_merchant_fraud.values, y=top_merchant_fraud.index,
+                orientation='h',
+                labels={'x': 'Jumlah Fraud', 'y': 'Merchant'},
+                title="Top 10 Merchant dengan Fraud Terbanyak")
+            st.plotly_chart(fig, use_container_width=True)
+        
+        # 4. Distribusi Fraud vs Not Fraud
+        fraud_label_col = 'fraud'
+        if fraud_label_col in st.session_state.data.columns:
+            fraud_dist = st.session_state.data[fraud_label_col].value_counts()
+            fig = px.pie(
+                values=fraud_dist.values, names=fraud_dist.index,
+                title="Distribusi Fraud vs Not Fraud")
+            st.plotly_chart(fig, use_container_width=True)
+
+        st.markdown("---")
+        
         # Feature Selection Section
         st.subheader("🎯 Feature Selection (Mutual Information)")
         
-        if 'is_fraud' in st.session_state.data.columns:
-            # Prepare features and target
-            X = st.session_state.data.drop(['is_fraud'], axis=1)
-            y = st.session_state.data['is_fraud']
-            
-            # Remove non-numeric columns for MI calculation
+        # Pastikan kolom target tersedia
+        if 'fraud' in st.session_state.data.columns:
+            # Pisahkan fitur dan target
+            X = st.session_state.data.drop(columns=['fraud'], errors='ignore')
+            y = (st.session_state.data['fraud'] == 'Fraud').astype(int)
+        
+            # Ambil fitur numerik
             numeric_features = X.select_dtypes(include=[np.number])
-            
-            if len(numeric_features.columns) > 0:
-                threshold = st.slider("MI Threshold:", 0.001, 0.1, 0.01, 0.001, key="mi_threshold")
-                
-                if st.button("Hitung Feature Importance", key="calc_feature_importance"):
-                    feature_importance, selected_features = calculate_feature_importance_mi(numeric_features, y, threshold)
-                    st.session_state.feature_importance = feature_importance
-                    
+        
+            if not numeric_features.empty:
+                # Slider threshold
+                threshold = st.slider("Pilih Threshold MI:", 0.001, 0.1, 0.01, 0.001)
+        
+                if st.button("🔍 Hitung Feature Importance"):
+                    fi_df, selected = calculate_feature_importance_mi(numeric_features, y, threshold)
+                    st.session_state.feature_importance = fi_df
+        
                     col1, col2 = st.columns(2)
-                    
+        
                     with col1:
-                        st.write("**Feature Importance (MI Score)**")
+                        st.markdown("**Top 10 Fitur Berdasarkan MI Score**")
                         fig = px.bar(
-                            feature_importance.head(10), 
-                            x='importance', 
-                            y='feature', 
-                            orientation='h',
-                            title="Top 10 Features by MI Score"
+                            fi_df.head(10), x='importance', y='feature',
+                            orientation='h', title="Top 10 MI Features"
                         )
                         st.plotly_chart(fig, use_container_width=True)
-                    
-                    with col2:
-                        st.write("**Selected Features**")
-                        st.dataframe(selected_features, use_container_width=True)
-                        
-                        st.info(f"""
-                        **Summary:**
-                        - Total features: {len(feature_importance)}
-                        - Selected features: {len(selected_features)}
-                        - Threshold: {threshold}
-                        """)
         
+                    with col2:
+                        st.markdown("**Fitur Terpilih**")
+                        st.dataframe(selected, use_container_width=True)
+        
+                        st.info(f"""
+                        **📌 Ringkasan:**
+                        - Total fitur dianalisis: {len(fi_df)}
+                        - Fitur terpilih: {len(selected)}
+                        - Threshold MI: {threshold}
+                        """)
+            else:
+                st.warning("⚠️ Tidak ada fitur numerik yang tersedia untuk analisis Mutual Information.")
+
         st.markdown("---")
         
-        # Visualisasi Section
-        st.subheader("📈 Visualisasi Data")
-        
-        if 'is_fraud' in st.session_state.data.columns:
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                # Distribusi fraud vs normal
-                fraud_dist = st.session_state.data['is_fraud'].value_counts()
-                fig = px.pie(values=fraud_dist.values, names=['Normal', 'Fraud'], 
-                           title="Distribusi Fraud vs Normal")
-                st.plotly_chart(fig, use_container_width=True)
-                
-                # Distribusi payment source (if exists)
-                payment_cols = [col for col in st.session_state.data.columns if 'payment' in col.lower() or 'source' in col.lower()]
-                if payment_cols:
-                    payment_col = payment_cols[0]
-                    payment_dist = st.session_state.data[payment_col].value_counts().head(10)
-                    fig = px.bar(x=payment_dist.index, y=payment_dist.values,
-                               title=f"Distribusi {payment_col}")
-                    st.plotly_chart(fig, use_container_width=True)
-            
-            with col2:
-                # Distribusi jumlah transaksi per status
-                amount_cols = [col for col in st.session_state.data.columns if 'amount' in col.lower()]
-                if amount_cols:
-                    amount_col = amount_cols[0]
-                    fig = px.histogram(st.session_state.data, x=amount_col, 
-                                     color='is_fraud', title=f"Distribusi {amount_col} by Fraud Status")
-                    st.plotly_chart(fig, use_container_width=True)
-                
-                # Distribusi merchant fraud (if merchant column exists)
-                merchant_cols = [col for col in st.session_state.data.columns if 'merchant' in col.lower()]
-                if merchant_cols:
-                    merchant_col = merchant_cols[0]
-                    merchant_fraud = st.session_state.data.groupby(merchant_col)['is_fraud'].sum().sort_values(ascending=False).head(10)
-                    if len(merchant_fraud) > 0:
-                        fig = px.bar(x=merchant_fraud.values, y=merchant_fraud.index,
-                                   orientation='h', title="Top 10 Merchant dengan Fraud Terbanyak")
-                        st.plotly_chart(fig, use_container_width=True)
-        
         # Navigation buttons
-        col1, col2 = st.columns(2)
+        col1, col2, col3 = st.columns(3)
         with col1:
             if st.button("⬅️ Kembali"):
                 st.session_state.current_step = 1
                 st.rerun()
-        with col2:
+        with col3:
             if st.button("➡️ Lanjut ke Analisis", type="primary"):
                 st.session_state.processed_data = st.session_state.data.copy()
                 st.session_state.current_step = 3
                 st.rerun()
-                st.session_state.data = handle_missing_values(st.session_state.data)
-                st.success("✅ Missing values berhasil ditangani!")
-                st.rerun()
-
+                
 elif st.session_state.current_step == 3:
     # Step 3: Analysis
     st.header("📊 Analisis Data")
