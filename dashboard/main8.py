@@ -176,10 +176,10 @@ def calculate_feature_importance_mi(X, y, threshold=0.01):
     feature_importance = pd.DataFrame({
         'feature': X.columns,
         'importance score': mi_scores
-    }).sort_values('importance', ascending=False)
+    }).sort_values('importance score', ascending=False)
     
     # Filter features above threshold
-    selected_features = feature_importance[feature_importance['importance'] > threshold]
+    selected_features = feature_importance[feature_importance['importance score'] > threshold]
     
     return feature_importance, selected_features
 
@@ -573,7 +573,7 @@ elif st.session_state.current_step == 2:
                         st.write("**Feature Importance (MI Score)**")
                         fig = px.bar(
                             feature_importance.head(10), 
-                            x='importance', 
+                            x='importance score', 
                             y='feature', 
                             orientation='h',
                             title="Top 10 Features by MI Score"
