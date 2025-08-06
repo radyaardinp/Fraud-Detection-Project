@@ -445,8 +445,7 @@ elif st.session_state.current_step == 2:
             if st.button("🚀 Terapkan Rule-Based Labelling", key="apply_rules"):
                 with st.spinner("Menerapkan rule-based labeling..."):
                     labeler = FraudDetectionLabeler()
-                    st.session_state.data, label_stats = labeler.apply_rule_based_labeling(st.session_state.data)
-                    st.session_state.label_stats = label_stats
+                    st.session_state.data = labeler.apply_rule_based_labeling(st.session_state.data)
                 st.success("✅ Labelling berhasil diterapkan!")
                 st.rerun()
 
