@@ -75,7 +75,7 @@ if 'current_step' not in st.session_state:
     st.session_state.selected_resampling = 'none'
     st.session_state.feature_importance = None
 
-# Create clickable step buttons
+#navigation button
 col1, col2, col3, col4, col5 = st.columns(5)
 with col1:
     if st.button("📤 Upload Data", key="nav1", use_container_width=True):
@@ -398,6 +398,30 @@ if st.session_state.current_step == 1:
     untuk mendeteksi fraud dengan akurasi tinggi dan memberikan penjelasan yang dapat dipahami.
     </div>
     """, unsafe_allow_html=True)
+
+#navigation button
+col1, col2, col3, col4, col5 = st.columns(5)
+with col1:
+    if st.button("📤 Upload Data", key="nav1", use_container_width=True):
+        st.session_state.current_step = 1
+        st.rerun()
+with col2:
+    if st.button("🔧 Preprocessing", key="nav2", use_container_width=True):
+        st.session_state.current_step = 2
+        st.rerun()
+with col3:
+    if st.button("📊 Analisis Data", key="nav3", use_container_width=True):
+        st.session_state.current_step = 3
+        st.rerun()
+with col4:
+    if st.button("📈 Evaluasi", key="nav4", use_container_width=True):
+        st.session_state.current_step = 4
+        st.rerun()
+with col5:
+    if st.button("🔍 Interpretasi LIME", key="nav5", use_container_width=True):
+        st.session_state.current_step = 5
+        st.rerun()
+
 
     # Step 1: Upload Data
     st.header("📤 Upload Data Transaksi")
