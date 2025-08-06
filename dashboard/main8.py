@@ -554,8 +554,8 @@ elif st.session_state.current_step == 2:
         
         if 'fraud' in st.session_state.data.columns:
             # Prepare features and target
-            X = st.session_state.data.drop(['is_fraud'], axis=1)
-            y = st.session_state.data['is_fraud']
+            X = st.session_state.data.drop(['fraud'], axis=1)
+            y = st.session_state.data['fraud']
             
             # Remove non-numeric columns for MI calculation
             numeric_features = X.select_dtypes(include=[np.number])
