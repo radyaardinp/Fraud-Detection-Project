@@ -432,7 +432,6 @@ elif st.session_state.current_step == 2:
             st.success("✅ Missing values telah berhasil ditangani.")
             st.markdown("### 📊 Perbandingan Jumlah Missing Value Sebelum & Sesudah Penanganan")
             st.dataframe(st.session_state.missing_comparison, use_container_width=True)
-            st.session_state.missing_handled = False  # reset flag agar tidak muncul terus
         
         else:
             st.success("✅ Tidak ada missing values dalam dataset!")
