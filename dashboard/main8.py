@@ -446,8 +446,8 @@ if st.session_state.current_step == 1:
         col1, col2, col3 = st.columns([6, 2, 2])  
         with col3:
             if st.button("➡️ Lanjut ke Preprocessing", type="primary"):
-            st.session_state.current_step = 2
-            st.rerun()
+                st.session_state.current_step = 2
+                st.rerun()
 
 elif st.session_state.current_step == 2:
     # Step 2: Preprocessing
