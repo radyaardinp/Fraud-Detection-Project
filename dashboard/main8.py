@@ -90,7 +90,7 @@ if st.session_state.current_step == 1:
     """, unsafe_allow_html=True)
 
 #navigation button
-st.markdown("<br>", unsafe_allow_html=True)
+st.markdown("<br><br>", unsafe_allow_html=True)
 col1, col2, col3, col4, col5 = st.columns(5)
 with col1:
     if st.button("📤 Upload Data", key="nav1", use_container_width=True):
