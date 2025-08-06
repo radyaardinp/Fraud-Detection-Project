@@ -70,6 +70,7 @@ if 'current_step' not in st.session_state:
     st.session_state.current_step = 1
     st.session_state.data = None
     st.session_state.processed_data = None
+    st.session_state.missing_handled = False
     st.session_state.model_trained = False
     st.session_state.training_results = {}
     st.session_state.selected_resampling = 'none'
