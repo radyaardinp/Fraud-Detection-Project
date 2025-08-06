@@ -455,39 +455,35 @@ elif st.session_state.current_step == 2:
             st.session_state.current_step = 1
             st.rerun()
     else:
-        # Missing Values Section
+        # 🔍 Identifikasi Missing Values
         st.subheader("🔍 Identifikasi Missing Values")
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.write("**Status Missing Values**")
-            missing_info = st.session_state.data.isnull().sum()
-            missing_pct = (missing_info / len(st.session_state.data)) * 100
-            
-            for col, count in missing_info.items():
-                if count > 0:
-                    st.error(f"{col}: {missing_pct[col]:.1f}% Missing ({count} values)")
-                else:
-                    st.success(f"{col}: 0% Missing")
-        
-        with col2:
-            st.write("**Metode Penanganan**")
-            st.info("""
-            **Aturan Penanganan:**
-            - Kolom Amount: Diisi dengan 0
-            - Kolom Status/Type: Diisi dengan "unknown"
-            - Kolom numerik lain: Diisi dengan mean
-            - Kolom kategorikal lain: Diisi dengan "unknown"
-            """)
-            
-            if st.button("Terapkan Penanganan Missing Values", key="handle_missing"):
-                st.session_state.data = handle_missing_values(st.session_state.data)
-                st.success("✅ Missing values berhasil ditangani!")
-                st.rerun()
-        
-        st.markdown("---")
-        
+
+        # Hitung info missing
+        missing_info = st.session_state.data.isnull().sum()
+        missing_pct = (missing_info / len(st.session_state.data)) * 100
+
+        # Filter hanya kolom dengan missing values
+        missing_df = pd.DataFrame({
+            "Kolom": missing_info.index,
+            "Jumlah Missing": missing_info.values
+        })
+
+        missing_df = missing_df[missing_df["Jumlah Missing"] > 0]
+
+        if missing_df.empty:
+            st.success("✅ Tidak ada missing values dalam dataset!")
+        else:
+            col1, col2 = st.columns([2, 1])
+            with col1:
+                st.write("**Tabel Kolom yang Mengandung Missing Values:**")
+                st.dataframe(missing_df.reset_index(drop=True), use_container_width=True)
+            with col2:
+                st.write("**Penanganan Otomatis**")
+                if st.button("🧹 Terapkan Penanganan Missing Values", key="handle_missing"):
+                    st.session_state.data = handle_missing_values(st.session_state.data)
+                    st.warning("✅ Missing values telah berhasil ditangani.")
+                    st.rerun()
+
         # Rule-Based Labelling Section
         st.subheader("🏷️ Rule-Based Labelling")
         
