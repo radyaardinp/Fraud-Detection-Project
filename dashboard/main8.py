@@ -422,8 +422,8 @@ if st.session_state.current_step == 1:
         # File details
         col1, col2 = st.columns(2)
         with col1:
-            st.info(f"**Rows:** {len(df):,}")
-            st.info(f"**Columns:** {df.shape[1]}")
+            st.info(f"**Rows:** {len(st.session_state.data):,}")
+            st.info(f"**Columns:** {st.session_state.data.shape[1]}")
         with col2:
            st.info(f"**File Size:** {uploaded_file.size / (1024*1024):.2f} MB")
            st.info(f"**File Type:** {uploaded_file.type}")
