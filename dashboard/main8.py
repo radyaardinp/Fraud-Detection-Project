@@ -471,28 +471,24 @@ elif st.session_state.current_step == 2:
 
         missing_df = missing_df[missing_df["Jumlah Missing"] > 0]
 
-        if st.session_state.missing_handled:
-            st.warning("✅ Missing values telah berhasil ditangani.")
-
-            # Tampilkan data preview setelah penanganan
-            st.markdown("### 📋 Data Setelah Penanganan Missing Values")
-            st.dataframe(st.session_state.data.head(), use_container_width=True)
-
-            # Tampilkan kolom yang tadinya missing
-            previously_missing_cols = missing_info[missing_info > 0].index.tolist()
-            if previously_missing_cols:
-                st.markdown("### 📌 Kolom yang Tadi Mengandung Missing Values")
-                st.dataframe(st.session_state.data[previously_missing_cols].head(), use_container_width=True)
-
-            # Reset flag agar tidak terus muncul
-            st.session_state.missing_handled = False
-
-        elif missing_df.empty:
+        if missing_df.empty:
             st.success("✅ Tidak ada missing values dalam dataset!")
-
         else:
-            st.warning("⚠️ Ditemukan missing values di dataset!")
-            st.dataframe(missing_df, use_container_width=True)
+            if st.session_state.missing_handled:
+                st.warning("✅ Missing values telah berhasil ditangani.")
+                
+                # (preview hasil penanganan bisa ditaruh di sini)
+            
+            else:
+                st.warning("⚠️ Ditemukan missing values di dataset!")
+                st.dataframe(missing_df, use_container_width=True)
+        
+                # ⬇️ Tambahkan tombol ini hanya jika belum ditangani
+                if st.button("🔧 Terapkan Penanganan Missing Values", key="handle_missing"):
+                    st.session_state.data = handle_missing_values(st.session_state.data)
+                    st.session_state.missing_handled = True
+                    st.rerun()
+
 
         # Rule-Based Labelling Section
         st.subheader("🏷️ Rule-Based Labelling")
