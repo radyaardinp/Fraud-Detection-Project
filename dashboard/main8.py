@@ -448,10 +448,13 @@ elif st.session_state.current_step == 2:
         **Threshold**: 95th percentile untuk outlier detection
         """)
 
+        # Cek apakah data mentah sudah disimpan
+        if 'fraud' not in st.session_state:
+            st.session_state.raw_data = st.session_state.data.copy()
+
         # Dataframe sebelum labelling
-        if 'fraud' not in st.session_state.data.columns:
-            st.markdown("### 📋 Data Sebelum Diberikan Label")
-            st.dataframe(st.session_state.data.head(10), use_container_width=True)
+        st.markdown("### 📋 Data Sebelum Diberikan Label")
+        st.dataframe(st.session_state.data.head(10), use_container_width=True)
 
         # Button
         if 'fraud' not in st.session_state.data.columns:
