@@ -450,6 +450,47 @@ elif st.session_state.current_step == 2:
         
         st.markdown("---")
         
+        # Outlier Detection Section
+        st.subheader("📉 Penanganan Outlier Otomatis Menggunakan Metode IQR")
+        numeric_cols = st.session_state.data.select_dtypes(include=[np.number]).columns.tolist()
+
+        # Tombol untuk periksa outlier
+        if st.button("🔍 Periksa Outlier", key="check_outliers"):
+            st.session_state.outlier_checked = True
+            st.session_state.outlier_data = copy.deepcopy(st.session_state.data)
+
+        # Tampilkan boxplot sebelum penanganan jika sudah diperiksa
+        if st.session_state.get("outlier_checked", False):
+            st.markdown("### 📈 Outlier Sebelum Penanganan")
+            fig, axes = plt.subplots(2, 3, figsize=(18, 8))
+            axes = axes.flatten()
+            for i, col in enumerate(numeric_cols[:6]):
+                sns.boxplot(x=st.session_state.data[col], ax=axes[i])
+                axes[i].set_title(f"Boxplot {col}")
+            st.pyplot(fig)
+
+            if st.button("🚨 Terapkan Penanganan Outlier "):
+                st.session_state.data = handle_outliers_iqr(st.session_state.data, numeric_cols)
+                st.session_state.outlier_handled = True
+                st.rerun()
+        
+        # Tampilkan boxplot sesudah penanganan
+        if st.session_state.get("outlier_handled", False):
+            st.markdown("### ✅ Outlier Setelah Penanganan")
+            fig, axes = plt.subplots(2, 3, figsize=(18, 8))
+            axes = axes.flatten()
+            for i, col in enumerate(numeric_cols[:6]):
+                sns.boxplot(x=st.session_state.data[col], ax=axes[i])
+                axes[i].set_title(f"Boxplot {col}")
+            st.pyplot(fig)
+
+            # Reset button
+            if st.button("🔄 Ulangi Pemeriksaan"):
+                st.session_state.outlier_checked = False
+                st.session_state.outlier_handled = False
+                st.rerun()
+        
+        st.markdown("---")
         # Rule-Based Labelling Section
         st.subheader("🏷️ Rule-Based Labelling")
 
