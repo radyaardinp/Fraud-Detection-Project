@@ -493,6 +493,8 @@ elif st.session_state.current_step == 2:
         # Tombol untuk periksa outlier
         if st.button("🔍 Periksa Outlier", key="check_outliers"):
             st.session_state.outlier_checked = True
+            st.session_state.outlier_handled = False 
+            st.session_state.raw_outlier_data = st.session_state.data.copy()
 
         # Tampilkan boxplot sebelum penanganan jika sudah diperiksa
         if st.session_state.get("outlier_checked", False) and not st.session_state.get("outlier_handled", False):
@@ -504,17 +506,16 @@ elif st.session_state.current_step == 2:
                 axes[i].set_title(f"Boxplot {col}")
             st.pyplot(fig)
 
-        if st.button("🚨 Terapkan Penanganan Outlier "):
-            st.session_state.data = handle_outliers_iqr(st.session_state.data, numeric_cols)
-            st.session_state.outlier_handled = True
-            st.rerun()
+            if st.button("🚨 Terapkan Penanganan Outlier "):
+                st.session_state.data = handle_outliers_iqr(st.session_state.data, numeric_cols)
+                st.session_state.outlier_handled = True
+                st.rerun()
         
         # Tampilkan boxplot sesudah penanganan
         if st.session_state.get("outlier_handled", False):
             st.markdown("### ✅ Outlier Setelah Penanganan")
             fig, axes = plt.subplots(2, 3, figsize=(18, 8))
             axes = axes.flatten()
-        
             for i, col in enumerate(numeric_cols[:6]):
                 sns.boxplot(x=st.session_state.data[col], ax=axes[i])
                 axes[i].set_title(f"Boxplot {col}")
