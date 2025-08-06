@@ -75,7 +75,46 @@ if 'current_step' not in st.session_state:
     st.session_state.selected_resampling = 'none'
     st.session_state.feature_importance = None
 
+st.markdown('<div class="main-header">🛡️ Fraud Detection System Dashboard</div>', unsafe_allow_html=True)
+
+if st.session_state.current_step == 1:
+    # Main header
+    st.markdown('<div class="sub-header">Advanced AI-Powered Transaction Analysis</div>', unsafe_allow_html=True)
+
+    # Description
+    st.markdown("""
+    <div class="description-text">
+    Dashboard ini menggunakan Algoritma Machine Learning <span class="highlight-text">Extreme Learning Machine (ELM)</span> 
+    yang telah terintegrasi dengan <span class="highlight-text">LIME (Local Interpretable Model-agnostic Explanations)</span> 
+    untuk mendeteksi fraud dengan akurasi tinggi dan memberikan penjelasan yang dapat dipahami.
+    </div>
+    """, unsafe_allow_html=True)
+
+#navigation button
+col1, col2, col3, col4, col5 = st.columns(5)
+with col1:
+    if st.button("📤 Upload Data", key="nav1", use_container_width=True):
+        st.session_state.current_step = 1
+        st.rerun()
+with col2:
+    if st.button("🔧 Preprocessing", key="nav2", use_container_width=True):
+        st.session_state.current_step = 2
+        st.rerun()
+with col3:
+    if st.button("📊 Analisis Data", key="nav3", use_container_width=True):
+        st.session_state.current_step = 3
+        st.rerun()
+with col4:
+    if st.button("📈 Evaluasi", key="nav4", use_container_width=True):
+        st.session_state.current_step = 4
+        st.rerun()
+with col5:
+    if st.button("🔍 Interpretasi LIME", key="nav5", use_container_width=True):
+        st.session_state.current_step = 5
+        st.rerun()
+
 # Helper functions
+
 @st.cache_data
 def load_data(uploaded_file):
     return pd.read_csv(uploaded_file)
@@ -363,43 +402,6 @@ def create_confusion_matrix_plot(cm):
 
 # Main content based on current step
 if st.session_state.current_step == 1:
-    # Main header
-    st.markdown('<div class="main-header">🛡️ Fraud Detection System Dashboard</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-header">Advanced AI-Powered Transaction Analysis</div>', unsafe_allow_html=True)
-
-    # Description
-    st.markdown("""
-    <div class="description-text">
-    Dashboard ini menggunakan Algoritma Machine Learning <span class="highlight-text">Extreme Learning Machine (ELM)</span> 
-    yang telah terintegrasi dengan <span class="highlight-text">LIME (Local Interpretable Model-agnostic Explanations)</span> 
-    untuk mendeteksi fraud dengan akurasi tinggi dan memberikan penjelasan yang dapat dipahami.
-    </div>
-    """, unsafe_allow_html=True)
-
-    #navigation button
-    col1, col2, col3, col4, col5 = st.columns(5)
-    with col1:
-        if st.button("📤 Upload Data", key="nav1", use_container_width=True):
-            st.session_state.current_step = 1
-            st.rerun()
-    with col2:
-        if st.button("🔧 Preprocessing", key="nav2", use_container_width=True):
-            st.session_state.current_step = 2
-            st.rerun()
-    with col3:
-        if st.button("📊 Analisis Data", key="nav3", use_container_width=True):
-            st.session_state.current_step = 3
-            st.rerun()
-    with col4:
-        if st.button("📈 Evaluasi", key="nav4", use_container_width=True):
-            st.session_state.current_step = 4
-            st.rerun()
-    with col5:
-        if st.button("🔍 Interpretasi LIME", key="nav5", use_container_width=True):
-            st.session_state.current_step = 5
-            st.rerun()
-
-
     # Step 1: Upload Data
     st.header("📤 Upload Data Transaksi")
     
