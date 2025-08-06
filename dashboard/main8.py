@@ -283,7 +283,7 @@ class FraudDetectionLabeler:
         df['mismatch_ratio'] = np.where(df['inquiryAmount'] == 0, 0, df['mismatch'] / df['inquiryAmount'])
         df['is_nominal_tinggi'] = df['amount'] > 8_000_000
 
-        thresholds = self._calculate_thresholds(df)
+        thresholds = self.calculate_thresholds(df)
 
         df['label1'] = df.apply(lambda r: self.rule_1(r, thresholds), axis=1)
         df['label2'] = df.apply(self.rule_2, axis=1)
