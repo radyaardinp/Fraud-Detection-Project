@@ -164,6 +164,18 @@ def detect_outliers_iqr(df, column):
     upper_bound = Q3 + 1.5 * IQR
     outliers = (df[column] < lower_bound) | (df[column] > upper_bound)
     return outliers, lower_bound, upper_bound
+    
+#Handling Outlier   
+def handle_outliers_iqr(df, columns):
+    df = df.copy()
+    for col in columns:
+        Q1 = df[col].quantile(0.25)
+        Q3 = df[col].quantile(0.75)
+        IQR = Q3 - Q1
+        lower_bound = Q1 - 1.5 * IQR
+        upper_bound = Q3 + 1.5 * IQR
+        df = df[(df[col] >= lower_bound) & (df[col] <= upper_bound)]
+    return df
 
 #Menghitung Mutual information untuk feature selection
 def calculate_feature_importance_mi(X, y, threshold=0.01):
