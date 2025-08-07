@@ -183,11 +183,19 @@ def feature_eng(df):
     df = df.copy()
     epsilon = 1e-6
 
-    df['discount_ratio'] = df['discountAmount'] / (df['amount'] + epsilon)
+    if 'amount' in df.columns and df['amount'].notna().any():
+        df['discount_ratio'] = df['discountAmount'] / (df['amount'] + epsilon)
+        df['fee_ratio'] = df['feeAmount'] / (df['amount'] + epsilon)
+    else:
+        df['discount_ratio'] = 0
+        df['fee_ratio'] = 0
+
     df['fee_ratio'] = df['feeAmount'] / (df['amount'] + epsilon)
     df['hour_of_day'] = df['createdTime'].dt.hour
-    df['selisih_waktu_sec'] = (df['updatedTime'] - df['createdTime']).dt.total_seconds()
-
+    mask = df['updatedTime'].notna() & df['createdTime'].notna()
+    df['selisih_waktu_sec'] = np.where(mask, 
+                                       (df['updatedTime'] - df['createdTime']).dt.total_seconds(),
+                                       np.nan)
     return df
 
 #Menghitung Mutual information untuk feature selection
@@ -226,8 +234,8 @@ class FraudDetectionLabeler:
     def ensure_columns(self, df):
         defaults = {
             'amount': 0, 'inquiryAmount': 0, 'settlementAmount': 0,
-            'merchantId': 'MERCHANT_001', 'createdTime': pd.Timestamp.now(),
-            'status': 'success'
+            'merchantId': 'merch1', 'createdTime': pd.Timestamp.now(),
+            'status': 'captured'
         }
         for col, default in defaults.items():
             if col not in df.columns:
