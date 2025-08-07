@@ -548,16 +548,20 @@ elif st.session_state.current_step == 2:
         st.subheader("🎯 Feature Selection (Mutual Information)")
         
         if 'feature_engineered' not in st.session_state:
-            try:
-                df = st.session_state.processed_data.copy()
-                df = feature_eng(df)
-                st.session_state.data = df
-                st.session_state.feature_engineered = True
-                st.success("✅ Fitur baru berhasil dibuat!")
-            except Exception as e:
-                st.error(f"❌ Error dalam feature engineering: {str(e)}")
+            if 'processed_data' in st.session_state and st.session_state.processed_data is not None:
+                try:
+                    df = st.session_state.processed_data.copy()
+                    df = feature_eng(df)
+                    st.session_state.data = df
+                    st.session_state.feature_engineered = True
+                    st.success("✅ Fitur baru berhasil dibuat!")
+                except Exception as e:
+                    st.error(f"❌ Error dalam feature engineering: {str(e)}")
+                    st.stop()
+            else:
+                st.error("❌ 'processed_data' belum tersedia. Harap lakukan preprocessing dulu.")
                 st.stop()
-            
+                
         if 'fraud' in st.session_state.data.columns:
             st.warning("⚠️ Kolom 'fraud' tidak ditemukan dalam dataset!")
             st.stop()
