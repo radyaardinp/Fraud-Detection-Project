@@ -489,6 +489,7 @@ elif st.session_state.current_step == 2:
                 with st.spinner("Menerapkan rule-based labeling..."):
                     labeler = FraudDetectionLabeler()
                     st.session_state.data = labeler.apply_rule_based_labeling(st.session_state.data)
+                    st.session_state.processed_data = st.session_state.data.copy()
                 st.success("✅ Labelling berhasil diterapkan!")
                 st.rerun()
 
@@ -562,7 +563,7 @@ elif st.session_state.current_step == 2:
                 st.error("❌ 'processed_data' belum tersedia. Harap lakukan preprocessing dulu.")
                 st.stop()
                 
-        if 'fraud' in st.session_state.data.columns:
+        if 'fraud' not in st.session_state.data.columns:
             st.warning("⚠️ Kolom 'fraud' tidak ditemukan dalam dataset!")
             st.stop()
         
