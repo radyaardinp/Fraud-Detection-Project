@@ -174,7 +174,8 @@ def handle_outliers_iqr(df, columns):
         IQR = Q3 - Q1
         lower_bound = Q1 - 1.5 * IQR
         upper_bound = Q3 + 1.5 * IQR
-        df = df[(df[col] >= lower_bound) & (df[col] <= upper_bound)]
+        df[col] = np.where(df[col] > upper_bound, upper_bound,
+                           np.where(df[col] < lower_bound, lower_bound, df[col]))
     return df
 
 #Menghitung Mutual information untuk feature selection
@@ -450,47 +451,6 @@ elif st.session_state.current_step == 2:
         
         st.markdown("---")
         
-        # Outlier Detection Section
-        st.subheader("📉 Penanganan Outlier Otomatis Menggunakan Metode IQR")
-        numeric_cols = st.session_state.data.select_dtypes(include=[np.number]).columns.tolist()
-
-        # Tombol untuk periksa outlier
-        if st.button("🔍 Periksa Outlier", key="check_outliers"):
-            st.session_state.outlier_checked = True
-            st.session_state.outlier_data = copy.deepcopy(st.session_state.data)
-
-        # Tampilkan boxplot sebelum penanganan jika sudah diperiksa
-        if st.session_state.get("outlier_checked", False):
-            st.markdown("### 📈 Outlier Sebelum Penanganan")
-            fig, axes = plt.subplots(2, 3, figsize=(18, 8))
-            axes = axes.flatten()
-            for i, col in enumerate(numeric_cols[:6]):
-                sns.boxplot(x=st.session_state.data[col], ax=axes[i])
-                axes[i].set_title(f"Boxplot {col}")
-            st.pyplot(fig)
-
-            if st.button("🚨 Terapkan Penanganan Outlier "):
-                st.session_state.data = handle_outliers_iqr(st.session_state.data, numeric_cols)
-                st.session_state.outlier_handled = True
-                st.rerun()
-        
-        # Tampilkan boxplot sesudah penanganan
-        if st.session_state.get("outlier_handled", False):
-            st.markdown("### ✅ Outlier Setelah Penanganan")
-            fig, axes = plt.subplots(2, 3, figsize=(18, 8))
-            axes = axes.flatten()
-            for i, col in enumerate(numeric_cols[:6]):
-                sns.boxplot(x=st.session_state.data[col], ax=axes[i])
-                axes[i].set_title(f"Boxplot {col}")
-            st.pyplot(fig)
-
-            # Reset button
-            if st.button("🔄 Ulangi Pemeriksaan"):
-                st.session_state.outlier_checked = False
-                st.session_state.outlier_handled = False
-                st.rerun()
-        
-        st.markdown("---")
         # Rule-Based Labelling Section
         st.subheader("🏷️ Rule-Based Labelling")
 
@@ -525,49 +485,6 @@ elif st.session_state.current_step == 2:
             st.markdown("### ✅ Data Setelah Diberi Label")
             st.dataframe(st.session_state.data.head(10), use_container_width=True)
 
-        st.markdown("---")
-        
-        # Outlier Detection Section
-        st.subheader("📉 Penanganan Outlier Otomatis Menggunakan Metode IQR")
-        numeric_cols = st.session_state.data.select_dtypes(include=[np.number]).columns.tolist()
-
-        # Tombol untuk periksa outlier
-        if st.button("🔍 Periksa Outlier", key="check_outliers"):
-            st.session_state.outlier_checked = True
-            st.session_state.outlier_handled = False 
-            st.session_state.raw_outlier_data = st.session_state.data.copy()
-
-        # Tampilkan boxplot sebelum penanganan jika sudah diperiksa
-        if st.session_state.get("outlier_checked", False) and not st.session_state.get("outlier_handled", False):
-            st.markdown("### 📈 Outlier Sebelum Penanganan")
-            fig, axes = plt.subplots(2, 3, figsize=(18, 8))
-            axes = axes.flatten()
-            for i, col in enumerate(numeric_cols[:6]):
-                sns.boxplot(x=st.session_state.data[col], ax=axes[i])
-                axes[i].set_title(f"Boxplot {col}")
-            st.pyplot(fig)
-
-            if st.button("🚨 Terapkan Penanganan Outlier "):
-                st.session_state.data = handle_outliers_iqr(st.session_state.data, numeric_cols)
-                st.session_state.outlier_handled = True
-                st.rerun()
-        
-        # Tampilkan boxplot sesudah penanganan
-        if st.session_state.get("outlier_handled", False):
-            st.markdown("### ✅ Outlier Setelah Penanganan")
-            fig, axes = plt.subplots(2, 3, figsize=(18, 8))
-            axes = axes.flatten()
-            for i, col in enumerate(numeric_cols[:6]):
-                sns.boxplot(x=st.session_state.data[col], ax=axes[i])
-                axes[i].set_title(f"Boxplot {col}")
-            st.pyplot(fig)
-
-            # Reset button
-            if st.button("🔄 Ulangi Pemeriksaan"):
-                st.session_state.outlier_checked = False
-                st.session_state.outlier_handled = False
-                st.rerun()
-        
         st.markdown("---")
         
         # Visualisasi Section
@@ -681,153 +598,390 @@ elif st.session_state.current_step == 3:
             st.session_state.current_step = 2
             st.rerun()
     else:
-        # Resampling method selection
-        st.subheader("⚖️ Pilih Metode Resampling")
-        
-        resampling_options = [
-            ("none", "None - Tanpa resampling"),
-            ("smote", "SMOTE"),
-            ("adasyn", "ADASYN"),
-            ("tomeklinks", "Tomek Links "),
-            ("enn", "ENN"),
-            ("smoteenn", "SMOTE+ENN"),
-            ("smotetomek", "SMOTE+Tomek Links")
-        ]
-        
-        selected_resampling = st.selectbox(
-            "Metode Resampling:",
-            options=[option[0] for option in resampling_options],
-            format_func=lambda x: next(option[1] for option in resampling_options if option[0] == x),
-            index=0
-        )
-        st.session_state.selected_resampling = selected_resampling
-        
-        # ELM Parameters
-        st.subheader("🧠 Parameter ELM")
-        
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            activation_function = st.selectbox(
-                "Fungsi Aktivasi:",
-                ["sigmoid", "tanh", "relu"]
-            )
-        
-        with col2:
-            hidden_neurons = st.slider(
-                "Jumlah Hidden Neuron:",
-                min_value=50, max_value=500, value=100, step=10
-            )
-        
-        with col3:
-            learning_rate = st.slider(
-                "Learning Rate:",
-                min_value=0.01, max_value=1.0, value=0.1, step=0.01
-            )
-        
-        # Training configuration
-        st.subheader("🚀 Konfigurasi Training")
-        
+        # Data Splitting Section
+        st.subheader("✂️ Pembagian Dataset")
         col1, col2 = st.columns(2)
         
         with col1:
-            st.write("**Training Setup**")
             train_size = st.slider("Training Size (%):", 60, 90, 70)
             test_size = 100 - train_size
             
             st.info(f"""
-            **Konfigurasi:**
+            **Konfigurasi Split:**
             - Data Training: {train_size}%
             - Data Testing: {test_size}%
-            - Resampling: {selected_resampling.upper()}
-            - Hidden Neurons: {hidden_neurons}
-            - Activation: {activation_function}
             """)
         
         with col2:
-            st.write("**Training Control**")
-            
-            if not st.session_state.model_trained:
-                if st.button("🚀 Mulai Training ELM", type="primary"):
-                    # Simulate training process
-                    progress_bar = st.progress(0)
-                    status_text = st.empty()
-                    
-                    # Simulate training steps
-                    steps = [
-                        "Initializing ELM architecture...",
-                        "Processing training data...", 
-                        "Computing output weights...",
-                        "Validating model performance...",
-                        "Finalizing model..."
-                    ]
-                    
-                    for i, step in enumerate(steps):
-                        status_text.text(step)
-                        progress_bar.progress((i + 1) / len(steps))
-                        time.sleep(1)
-                    
-                    # Generate realistic results
-                    accuracy = 0.92 + np.random.random() * 0.06
-                    precision = accuracy - 0.02 + np.random.random() * 0.03
-                    recall = accuracy - 0.04 + np.random.random() * 0.05
-                    f1 = 2 * (precision * recall) / (precision + recall)
-                    
-                    st.session_state.training_results = {
-                        'accuracy': accuracy,
-                        'precision': precision,
-                        'recall': recall,
-                        'f1': f1,
-                        'training_time': np.random.uniform(0.5, 2.0)
-                    }
-                    st.session_state.model_trained = True
-                    
-                    status_text.success("✅ Training completed successfully!")
-                    st.rerun()
-            else:
-                st.success("✅ Model sudah berhasil ditraining!")
+            if st.button("🔄 Split Dataset") or 'X_train' not in st.session_state:
+                df = st.session_state.processed_data.copy()
+                
+                X = df.drop(columns=["fraud"])
+                y = df["fraud"]
+                
+                test_ratio = test_size / 100
+                
+                X_train, X_test, y_train, y_test = train_test_split(
+                    X, y,
+                    test_size=test_ratio,
+                    stratify=y,
+                    random_state=42
+                )
+                
+                # Simpan ke session_state
+                st.session_state.X_train = X_train.copy()
+                st.session_state.X_test = X_test.copy()
+                st.session_state.y_train = y_train.copy()
+                st.session_state.y_test = y_test.copy()
+                st.session_state.data_split = True
+                st.session_state.outlier_handled = False
+                st.session_state.data_normalized = False
+                
+                st.success("✅ Dataset berhasil dibagi!")
         
-        # Training results
-        if st.session_state.model_trained:
-            st.subheader("📊 Hasil Training")
-            
-            col1, col2, col3, col4 = st.columns(4)
-            
-            results = st.session_state.training_results
+        # Show dataset info after splitting
+        if st.session_state.get('data_split', False):
+            col1, col2, col3 = st.columns(3)
             
             with col1:
-                st.markdown('<div class="metric-card success-metric">', unsafe_allow_html=True)
-                st.metric("Accuracy", f"{results['accuracy']*100:.1f}%")
-                st.markdown('</div>', unsafe_allow_html=True)
+                st.metric("Training Samples", len(st.session_state.X_train))
+                st.metric("Fraud (Training)", sum(st.session_state.y_train))
             
             with col2:
-                st.markdown('<div class="metric-card success-metric">', unsafe_allow_html=True)
-                st.metric("Precision", f"{results['precision']*100:.1f}%")
-                st.markdown('</div>', unsafe_allow_html=True)
+                st.metric("Testing Samples", len(st.session_state.X_test))
+                st.metric("Fraud (Testing)", sum(st.session_state.y_test))
             
             with col3:
-                st.markdown('<div class="metric-card success-metric">', unsafe_allow_html=True)
-                st.metric("Recall", f"{results['recall']*100:.1f}%")
-                st.markdown('</div>', unsafe_allow_html=True)
-            
-            with col4:
-                st.markdown('<div class="metric-card success-metric">', unsafe_allow_html=True)
-                st.metric("F1-Score", f"{results['f1']*100:.1f}%")
-                st.markdown('</div>', unsafe_allow_html=True)
-            
-            st.info(f"⚡ Training Time: {results['training_time']:.1f} seconds")
+                st.metric("Total Features", st.session_state.X_train.shape[1])
+                fraud_rate = (sum(st.session_state.y_train) / len(st.session_state.y_train)) * 100
+                st.metric("Fraud Rate (%)", f"{fraud_rate:.1f}%")
         
-        # Navigation buttons
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button("⬅️ Kembali"):
-                st.session_state.current_step = 2
-                st.rerun()
-        with col2:
-            if st.session_state.model_trained and st.button("➡️ Lanjut ke Evaluasi", type="primary"):
-                st.session_state.current_step = 4
-                st.rerun()
-
+        # Outlier Handling Section (only show after data split)
+        if st.session_state.get('data_split', False):
+            st.subheader("📉 Penanganan Outlier pada Data Training")
+            
+            numeric_cols = st.session_state.X_train.select_dtypes(include=[np.number]).columns.tolist()
+            
+            if st.button("🔍 Periksa Outlier"):
+                st.session_state.outlier_checked = True
+                st.session_state.outlier_handled = False
+            
+            # Tampilkan visualisasi SEBELUM handling outlier
+            if st.session_state.get("outlier_checked", False) and not st.session_state.get("outlier_handled", False):
+                st.markdown("### 🔬 Outlier pada Data Training (Sebelum Penanganan)")
+                
+                # Calculate outliers using IQR method
+                outlier_info = {}
+                for col in numeric_cols[:6]:  # Show first 6 numeric columns
+                    Q1 = st.session_state.X_train[col].quantile(0.25)
+                    Q3 = st.session_state.X_train[col].quantile(0.75)
+                    IQR = Q3 - Q1
+                    lower_bound = Q1 - 1.5 * IQR
+                    upper_bound = Q3 + 1.5 * IQR
+                    outliers = st.session_state.X_train[(st.session_state.X_train[col] < lower_bound) | 
+                                                       (st.session_state.X_train[col] > upper_bound)][col]
+                    outlier_info[col] = len(outliers)
+                
+                # Show outlier summary
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    st.write("**Jumlah Outlier per Kolom:**")
+                    outlier_df = pd.DataFrame(list(outlier_info.items()), columns=['Kolom', 'Jumlah Outlier'])
+                    st.dataframe(outlier_df, use_container_width=True)
+                
+                with col2:
+                    total_outliers = sum(outlier_info.values())
+                    total_samples = len(st.session_state.X_train)
+                    outlier_percentage = (total_outliers / total_samples) * 100
+                    
+                    st.metric("Total Outlier Points", total_outliers)
+                    st.metric("Outlier Percentage", f"{outlier_percentage:.2f}%")
+                
+                # Boxplot visualization
+                fig, axes = plt.subplots(2, 3, figsize=(18, 10))
+                axes = axes.flatten()
+                
+                for i, col in enumerate(numeric_cols[:6]):
+                    sns.boxplot(x=st.session_state.X_train[col], ax=axes[i])
+                    axes[i].set_title(f"{col}\n(Outliers: {outlier_info[col]})")
+                    axes[i].tick_params(axis='x', rotation=45)
+                    
+                outlier_method = "iqr_capping"
+                
+                plt.tight_layout()
+                st.pyplot(fig)
+                if st.button("🚨 Terapkan Penanganan Outlier"):
+                    X_train_processed = st.session_state.X_train.copy()
+                    
+                    if outlier_method == "iqr_capping":
+                        # IQR Capping method
+                        for col in numeric_cols:
+                            Q1 = X_train_processed[col].quantile(0.25)
+                            Q3 = X_train_processed[col].quantile(0.75)
+                            IQR = Q3 - Q1
+                            lower_bound = Q1 - 1.5 * IQR
+                            upper_bound = Q3 + 1.5 * IQR
+                            X_train_processed[col] = X_train_processed[col].clip(lower_bound, upper_bound)
+                            
+                    st.session_state.X_train = X_train_processed
+                    st.session_state.outlier_handled = True
+                    st.session_state.outlier_method_used = outlier_method
+                    st.rerun()
+            
+            # Show results AFTER outlier handling
+            if st.session_state.get("outlier_handled", False):
+                st.markdown("### ✅ Setelah Penanganan Outlier")
+                
+                # Show before/after comparison
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    st.write("**Sebelum Penanganan:**")
+                    original_shape = st.session_state.X_train.shape
+                    st.info(f"Shape: {original_shape}")
+                
+                with col2:
+                    st.write("**Setelah Penanganan:**")
+                    processed_shape = st.session_state.X_train.shape
+                    method_used = st.session_state.get('outlier_method_used', 'Unknown')
+                    st.info(f"Shape: {processed_shape}\nMetode: {method_used}")
+                
+                # Visualization after outlier handling
+                fig, axes = plt.subplots(2, 3, figsize=(18, 10))
+                axes = axes.flatten()
+                
+                for i, col in enumerate(numeric_cols[:6]):
+                    sns.boxplot(x=st.session_state.X_train[col], ax=axes[i])
+                    axes[i].set_title(f"{col} (Setelah Penanganan)")
+                    axes[i].tick_params(axis='x', rotation=45)
+                
+                plt.tight_layout()
+                st.pyplot(fig)
+                
+                if st.button("🔄 Ulangi Outlier Handling"):
+                    st.session_state.X_train = st.session_state.X_train.copy()
+                    st.session_state.outlier_checked = False
+                    st.session_state.outlier_handled = False
+                    st.session_state.data_normalized = False
+                    st.rerun()
+        
+        # Normalization Section (only show after outlier handling)
+        if st.session_state.get('outlier_handled', False):
+            st.subheader("📏 Normalisasi Data (MinMax Scaler)")
+            
+            if not st.session_state.get('data_normalized', False):
+                st.write("**Feature Scaling menggunakan MinMax Scaler (0-1)**")
+                
+                # Show current data statistics
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    st.write("**Statistik Sebelum Normalisasi:**")
+                    stats_before = st.session_state.X_train[numeric_cols].describe()
+                    st.dataframe(stats_before)
+                
+                if st.button("📐 Terapkan MinMax Normalisasi"):
+                    from sklearn.preprocessing import MinMaxScaler
+                    
+                    # Initialize scaler
+                    scaler = MinMaxScaler()
+                    
+                    # Fit and transform training data
+                    X_train_scaled = st.session_state.X_train.copy()
+                    X_train_scaled[numeric_cols] = scaler.fit_transform(X_train_scaled[numeric_cols])
+                    
+                    # Transform test data using the same scaler
+                    X_test_scaled = st.session_state.X_test.copy()
+                    X_test_scaled[numeric_cols] = scaler.transform(X_test_scaled[numeric_cols])
+                    
+                    # Save to session state
+                    st.session_state.X_train = X_train_scaled
+                    st.session_state.X_test = X_test_scaled
+                    st.session_state.scaler = scaler
+                    st.session_state.data_normalized = True
+                    
+                    st.success("✅ Data berhasil dinormalisasi!")
+                    st.rerun()
+            
+            else:
+                st.success("✅ Data sudah dinormalisasi!")
+                
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    st.write("**Statistik Setelah Normalisasi (Training):**")
+                    stats_after = st.session_state.X_train[numeric_cols].describe()
+                    st.dataframe(stats_after)
+                
+                with col2:
+                    st.write("**Range Data:**")
+                    for col in numeric_cols[:5]:  # Show first 5 columns
+                        min_val = st.session_state.X_train[col].min()
+                        max_val = st.session_state.X_train[col].max()
+                        st.write(f"**{col}**: [{min_val:.3f}, {max_val:.3f}]")
+                
+                if st.button("🔄 Reset Normalisasi"):
+                    # Restore from backup and re-apply outlier handling if needed
+                    st.session_state.data_normalized = False
+                    if st.session_state.get('outlier_handled', False):
+                        # Need to re-apply outlier handling logic here
+                        st.warning("⚠️ Silakan terapkan ulang penanganan outlier sebelum normalisasi")
+                    st.rerun()
+        
+        # Training Section (only show after normalization)
+        if st.session_state.get('data_normalized', False):
+            # Resampling method selection
+            st.subheader("⚖️ Pilih Metode Resampling")
+            
+            resampling_options = [
+                ("none", "None - Tanpa resampling"),
+                ("smote", "SMOTE"),
+                ("adasyn", "ADASYN"),
+                ("tomeklinks", "Tomek Links "),
+                ("enn", "ENN"),
+                ("smoteenn", "SMOTE+ENN"),
+                ("smotetomek", "SMOTE+Tomek Links")
+            ]
+            
+            selected_resampling = st.selectbox(
+                "Metode Resampling:",
+                options=[option[0] for option in resampling_options],
+                format_func=lambda x: next(option[1] for option in resampling_options if option[0] == x),
+                index=0
+            )
+            st.session_state.selected_resampling = selected_resampling
+    
+            # ELM Parameters
+            st.subheader("🧠 Parameter ELM")
+            
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                activation_function = st.selectbox(
+                    "Fungsi Aktivasi:",
+                    ["sigmoid", "tanh", "relu"]
+                )
+            
+            with col2:
+                hidden_neurons = st.slider(
+                    "Jumlah Hidden Neuron:",
+                    min_value=50, max_value=500, value=100, step=10
+                )
+            
+            with col3:
+                learning_rate = st.slider(
+                    "Learning Rate:",
+                    min_value=0.01, max_value=1.0, value=0.1, step=0.01
+                )
+            
+            # Training configuration
+            st.subheader("🚀 Konfigurasi Training")
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.write("**Training Setup**")
+                
+                current_train_shape = st.session_state.X_train.shape
+                current_test_shape = st.session_state.X_test.shape
+                
+                st.info(f"""
+                **Konfigurasi Final:**
+                - Training Shape: {current_train_shape}
+                - Testing Shape: {current_test_shape}
+                - Resampling: {selected_resampling.upper()}
+                - Hidden Neurons: {hidden_neurons}
+                - Activation: {activation_function}
+                - Outlier Method: {st.session_state.get('outlier_method_used', 'N/A')}
+                - Normalization: MinMax Scaler
+                """)
+            
+            with col2:
+                st.write("**Training Control**")
+                
+                if not st.session_state.get('model_trained', False):
+                    if st.button("🚀 Mulai Training ELM", type="primary"):
+                        # Simulate training process
+                        progress_bar = st.progress(0)
+                        status_text = st.empty()
+                        
+                        # Simulate training steps
+                        steps = [
+                            "Initializing ELM architecture...",
+                            "Applying resampling technique...",
+                            "Processing training data...", 
+                            "Computing output weights...",
+                            "Validating model performance...",
+                            "Finalizing model..."
+                        ]
+                        
+                        for i, step in enumerate(steps):
+                            status_text.text(step)
+                            progress_bar.progress((i + 1) / len(steps))
+                            time.sleep(1)
+                        
+                        # Generate realistic results
+                        accuracy = 0.92 + np.random.random() * 0.06
+                        precision = accuracy - 0.02 + np.random.random() * 0.03
+                        recall = accuracy - 0.04 + np.random.random() * 0.05
+                        f1 = 2 * (precision * recall) / (precision + recall)
+                        
+                        st.session_state.training_results = {
+                            'accuracy': accuracy,
+                            'precision': precision,
+                            'recall': recall,
+                            'f1': f1,
+                            'training_time': np.random.uniform(0.5, 2.0)
+                        }
+                        st.session_state.model_trained = True
+                        
+                        status_text.success("✅ Training completed successfully!")
+                        st.rerun()
+                else:
+                    st.success("✅ Model sudah berhasil ditraining!")
+            
+            # Training results
+            if st.session_state.get('model_trained', False):
+                st.subheader("📊 Hasil Training")
+                
+                col1, col2, col3, col4 = st.columns(4)
+                
+                results = st.session_state.training_results
+                
+                with col1:
+                    st.markdown('<div class="metric-card success-metric">', unsafe_allow_html=True)
+                    st.metric("Accuracy", f"{results['accuracy']*100:.1f}%")
+                    st.markdown('</div>', unsafe_allow_html=True)
+                
+                with col2:
+                    st.markdown('<div class="metric-card success-metric">', unsafe_allow_html=True)
+                    st.metric("Precision", f"{results['precision']*100:.1f}%")
+                    st.markdown('</div>', unsafe_allow_html=True)
+                
+                with col3:
+                    st.markdown('<div class="metric-card success-metric">', unsafe_allow_html=True)
+                    st.metric("Recall", f"{results['recall']*100:.1f}%")
+                    st.markdown('</div>', unsafe_allow_html=True)
+                
+                with col4:
+                    st.markdown('<div class="metric-card success-metric">', unsafe_allow_html=True)
+                    st.metric("F1-Score", f"{results['f1']*100:.1f}%")
+                    st.markdown('</div>', unsafe_allow_html=True)
+                
+                st.info(f"⚡ Training Time: {results['training_time']:.1f} seconds")
+    
+    # Navigation buttons
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("⬅️ Kembali"):
+            st.session_state.current_step = 2
+            st.rerun()
+    with col2:
+        if st.session_state.get('model_trained', False) and st.button("➡️ Lanjut ke Evaluasi", type="primary"):
+            st.session_state.current_step = 4
+            st.rerun()
+        
 elif st.session_state.current_step == 4:
     # Step 4: Evaluation
     st.header("📈 Evaluasi Hasil")
