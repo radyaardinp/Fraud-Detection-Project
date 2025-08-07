@@ -178,6 +178,18 @@ def handle_outliers_iqr(df, columns):
                            np.where(df[col] < lower_bound, lower_bound, df[col]))
     return df
 
+#Membuat fitur baru
+def feature_eng(df):
+    df = df.copy()
+    epsilon = 1e-6
+
+    df['discount_ratio'] = df['discountAmount'] / (df['amount'] + epsilon)
+    df['fee_ratio'] = df['feeAmount'] / (df['amount'] + epsilon)
+    df['hour_of_day'] = df['createdTime'].dt.hour
+    df['selisih_waktu_sec'] = (df['updatedTime'] - df['createdTime']).dt.total_seconds()
+
+    return df
+
 #Menghitung Mutual information untuk feature selection
 def calculate_feature_importance_mi(X, y, threshold=0.01):
     X_encoded = X.copy()
@@ -535,15 +547,25 @@ elif st.session_state.current_step == 2:
         # Feature Selection Section
         st.subheader("🎯 Feature Selection (Mutual Information)")
         
+        if 'feature_engineered' not in st.session_state:
+            df = st.session_state.processed_data.copy()
+            df = feature_eng(df)
+            st.session_state.data = df
+            st.session_state.feature_engineered = True
+            st.success("✅ Fitur baru berhasil dibuat!")
+            
         if 'fraud' in st.session_state.data.columns:
             # Prepare features and target
+            df = st.session_state.data
             X = st.session_state.data.drop(['fraud'], axis=1)
             y = st.session_state.data['fraud']
             
-            # Remove non-numeric columns for MI calculation
-            numeric_features = X.select_dtypes(include=[np.number])
+            # Encode kategorik
+            X_encoded = X.copy()
+            for col in X_encoded.select_dtypes(include=['object', 'category']).columns:
+                X_encoded[col] = LabelEncoder().fit_transform(X_encoded[col])
             
-            if len(numeric_features.columns) > 0:
+            if y is not None:
                 threshold = st.slider("MI Threshold:", 0.001, 0.1, 0.01, 0.001, key="mi_threshold")
                 
                 if st.button("Hitung Feature Importance", key="calc_feature_importance"):
