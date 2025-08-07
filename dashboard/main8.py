@@ -548,53 +548,121 @@ elif st.session_state.current_step == 2:
         st.subheader("🎯 Feature Selection (Mutual Information)")
         
         if 'feature_engineered' not in st.session_state:
-            df = st.session_state.processed_data.copy()
-            df = feature_eng(df)
-            st.session_state.data = df
-            st.session_state.feature_engineered = True
-            st.success("✅ Fitur baru berhasil dibuat!")
+            try:
+                df = st.session_state.processed_data.copy()
+                df = feature_eng(df)
+                st.session_state.data = df
+                st.session_state.feature_engineered = True
+                st.success("✅ Fitur baru berhasil dibuat!")
+            except Exception as e:
+                st.error(f"❌ Error dalam feature engineering: {str(e)}")
+                st.stop()
             
         if 'fraud' in st.session_state.data.columns:
-            # Prepare features and target
-            df = st.session_state.data
-            X = st.session_state.data.drop(['fraud'], axis=1)
-            y = st.session_state.data['fraud']
-            
-            # Encode kategorik
-            X_encoded = X.copy()
-            for col in X_encoded.select_dtypes(include=['object', 'category']).columns:
-                X_encoded[col] = LabelEncoder().fit_transform(X_encoded[col])
-            
-            if y is not None:
-                threshold = st.slider("MI Threshold:", 0.001, 0.1, 0.01, 0.001, key="mi_threshold")
-                
-                if st.button("Hitung Feature Importance", key="calc_feature_importance"):
-                    feature_importance, selected_features = calculate_feature_importance_mi(numeric_features, y, threshold)
+            st.warning("⚠️ Kolom 'fraud' tidak ditemukan dalam dataset!")
+            st.stop()
+        
+        # Prepare data
+        df = st.session_state.data
+        X = df.drop(['fraud'], axis=1)
+        y = df['fraud']
+        
+        # Encode categorical features (with caching)
+        if 'X_encoded' not in st.session_state or 'label_encoders' not in st.session_state:
+            with st.spinner("🔄 Encoding categorical features..."):
+                try:
+                    X_encoded = X.copy()
+                    label_encoders = {}
+                    
+                    categorical_cols = X_encoded.select_dtypes(include=['object', 'category']).columns
+                    for col in categorical_cols:
+                        le = LabelEncoder()
+                        X_encoded[col] = le.fit_transform(X_encoded[col])
+                        label_encoders[col] = le
+                    
+                    st.session_state.X_encoded = X_encoded
+                    st.session_state.label_encoders = label_encoders
+                    
+                except Exception as e:
+                    st.error(f"❌ Error dalam encoding: {str(e)}")
+                    st.stop()
+        else:
+            X_encoded = st.session_state.X_encoded
+        
+        # Feature Selection UI
+        col1, col2 = st.columns([2, 1])
+        
+        with col1:
+            threshold = st.slider(
+                "Mutual Information Threshold:", 
+                min_value=0.001, 
+                max_value=0.1, 
+                value=0.01, 
+                step=0.001,
+                help="Fitur dengan MI score di atas threshold akan dipilih"
+            )
+        
+        with col2:
+            st.metric("Total Features", len(X_encoded.columns))
+            if 'feature_importance' in st.session_state:
+                selected_count = len(st.session_state.selected_features)
+                st.metric("Selected Features", selected_count)
+        
+        # Calculate Feature Importance
+        if st.button("🔍 Hitung Feature Importance", type="primary"):
+            try:
+                with st.spinner("🔄 Menghitung Mutual Information..."):
+                    # Progress bar
+                    progress_bar = st.progress(0)
+                    
+                    feature_importance, selected_features = calculate_feature_importance_mi(
+                        X_encoded, y, threshold
+                    )
+                    progress_bar.progress(100)
+                    
+                    # Store results
                     st.session_state.feature_importance = feature_importance
+                    st.session_state.selected_features = selected_features
                     
-                    col1, col2 = st.columns(2)
+                    st.success(f"✅ Feature importance berhasil dihitung!")
                     
-                    with col1:
-                        st.write("**Feature Importance (MI Score)**")
-                        fig = px.bar(
-                            feature_importance.head(10), 
-                            x='importance score', 
-                            y='feature', 
-                            orientation='h',
-                            title="Top 10 Features by MI Score"
-                        )
-                        st.plotly_chart(fig, use_container_width=True)
-                    
-                    with col2:
-                        st.write("**Selected Features**")
-                        st.dataframe(selected_features, use_container_width=True)
-                        
-                        st.info(f"""
-                        **Summary:**
-                        - Total features: {len(feature_importance)}
-                        - Selected features: {len(selected_features)}
-                        - Threshold: {threshold}
-                        """)
+            except Exception as e:
+                st.error(f"❌ Error dalam perhitungan: {str(e)}")
+        
+        # Display Results
+        if 'feature_importance' in st.session_state:
+            feature_importance = st.session_state.feature_importance
+            selected_features = st.session_state.selected_features
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.write("**📊 Feature Importance (MI Score)**")
+                
+                # Interactive bar chart
+                top_features = feature_importance.head(15)  # Show more features
+                fig = px.bar(
+                    top_features, 
+                    x='importance score', 
+                    y='feature', 
+                    orientation='h',
+                    title="Top 15 Features by Mutual Information Score",
+                    color='importance score',
+                    color_continuous_scale='viridis'
+                )
+                fig.update_layout(height=500)
+                st.plotly_chart(fig, use_container_width=True)
+            
+            with col2:
+                st.write("**✅ Selected Features**")
+                
+                # Show selected features with their scores
+                if not selected_features.empty:
+                    st.dataframe(
+                        selected_features, 
+                        use_container_width=True,
+                        height=300
+                    )
 
         st.markdown("---")
         
