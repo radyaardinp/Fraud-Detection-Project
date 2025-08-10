@@ -741,12 +741,28 @@ elif st.session_state.current_step == 3:
         
         with col2:
             if st.button("🔄 Split Dataset") or 'X_train' not in st.session_state:
-                if 'selected_features' in st.session_state:
-                    selected_features = st.session_state.selected_features
-                    df = st.session_state.processed_data[selected_features + ['fraud']].copy()
-                else:
-                    df = st.session_state.processed_data.copy()
+                # 🔹 Ambil fitur hasil seleksi (pastikan jadi list)
+                selected_raw = st.session_state.get('selected_features', [])
                 
+                if isinstance(selected_raw, pd.DataFrame):
+                    sel_list = selected_raw['feature'].astype(str).tolist() if 'feature' in selected_raw.columns else []
+                elif isinstance(selected_raw, pd.Series) or isinstance(selected_raw, np.ndarray):
+                    sel_list = list(selected_raw)
+                elif isinstance(selected_raw, list):
+                    sel_list = selected_raw.copy()
+                else:
+                    sel_list = []
+                
+                # Hanya gunakan kolom yang ada di processed_data
+                available_cols = [c for c in sel_list if c in st.session_state.processed_data.columns]
+                
+                # Kalau kosong, fallback ke semua kolom kecuali 'fraud'
+                if not available_cols:
+                    available_cols = [c for c in st.session_state.processed_data.columns if c != 'fraud']
+                
+                # Ambil dataframe sesuai fitur terpilih + kolom target
+                df = st.session_state.processed_data[available_cols + ['fraud']].copy()
+
                 X = df.drop(columns=["fraud"])
                 y = df["fraud"].apply(lambda val: 1 if str(val).lower() == 'fraud' else 0)
                 test_ratio = test_size / 100
