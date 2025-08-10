@@ -596,10 +596,7 @@ elif st.session_state.current_step == 2:
         df = st.session_state.data
         X = df.drop(['fraud'], axis=1)
         y = df['fraud']
-
-        # 🔹 Encode target y (Fraud / Not Fraud → 1 / 0)
-        y = y.apply(lambda val: 1 if str(val).lower() == 'fraud' else 0)
-
+        
         # Encode categorical features (with caching)
         if 'X_encoded' not in st.session_state or 'label_encoders' not in st.session_state:
             with st.spinner("🔄 Encoding categorical features..."):
@@ -748,7 +745,9 @@ elif st.session_state.current_step == 3:
                 
                 X = df.drop(columns=["fraud"])
                 y = df["fraud"]
-                
+
+                # 🔹 Encode target y (Fraud / Not Fraud → 1 / 0)
+                y = y.apply(lambda val: 1 if str(val).lower() == 'fraud' else 0)
                 test_ratio = test_size / 100
                 
                 X_train, X_test, y_train, y_test = train_test_split(
