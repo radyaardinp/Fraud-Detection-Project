@@ -642,31 +642,22 @@ elif st.session_state.current_step == 2:
         if st.button("🔍 Hitung Feature Importance", type="primary"):
             try:
                 with st.spinner("🔄 Menghitung Mutual Information..."):
-                    # 1️⃣ Ambil hanya kolom yang ada di data
                     available_cols = [c for c in CAT_COLS + NUM_COLS if c in st.session_state.data.columns]
                     X = st.session_state.data[available_cols].copy()
-        
-                    # 2️⃣ Convert datetime → timestamp
+                    
                     for col in X.select_dtypes(include=['datetime64[ns]', 'datetimetz']).columns:
                         X[col] = X[col].astype(np.int64) // 10**9
         
-                    # 3️⃣ Encode kategori → angka
                     for col in CAT_COLS:
                         if col in X.columns:
                             X[col] = pd.Categorical(X[col]).codes
         
-                    # 4️⃣ Pastikan numeric benar tipenya
                     for col in NUM_COLS:
                         if col in X.columns:
                             X[col] = pd.to_numeric(X[col], errors='coerce')
         
-                    # 5️⃣ Pastikan semua kolom numeric
                     X = X.apply(pd.to_numeric, errors='coerce')
-        
-                    # 6️⃣ Target variable
                     y = st.session_state.data['fraud']
-        
-                    # 7️⃣ Hitung Mutual Information
                     feature_importance, selected_features = calculate_feature_importance_mi(X, y, threshold)
         
                     st.session_state.feature_importance = feature_importance
