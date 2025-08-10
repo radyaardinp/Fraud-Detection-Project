@@ -650,7 +650,7 @@ elif st.session_state.current_step == 2:
         # Display Results
         if 'feature_importance' in st.session_state:
             feature_importance = st.session_state.feature_importance
-            selected_features = st.session_state.selected_features
+            selected_features = st.session_state.get('selected_features', [])
             
             col1, col2 = st.columns(2)
             
