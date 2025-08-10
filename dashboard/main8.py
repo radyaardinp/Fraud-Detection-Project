@@ -623,7 +623,7 @@ elif st.session_state.current_step == 2:
         with col2:
             st.metric("Total Features", len(X_encoded.columns))
             if 'feature_importance' in st.session_state:
-                selected_count = len(st.session_state.selected_features)
+                selected_count = len(st.session_state.get('selected_features' [])))
                 st.metric("Selected Features", selected_count)
         
         # Calculate Feature Importance
