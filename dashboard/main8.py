@@ -795,7 +795,16 @@ elif st.session_state.current_step == 3:
         # Outlier Handling Section (only show after data split)
         if st.session_state.get('data_split', False):
             st.subheader("📉 Penanganan Outlier pada Data Training")
+
+             # 🔹 Ambil fitur hasil feature selection
+            selected_features = st.session_state.get(
+                'selected_features',
+                st.session_state.X_train.columns.tolist())
             
+            # 🔹 Filter hanya fitur terpilih
+            X_train_current = st.session_state.X_train[selected_features].copy()
+            X_test_current = st.session_state.X_test[selected_features].copy()
+
             numeric_cols = st.session_state.X_train.select_dtypes(include=[np.number]).columns.tolist()
             
             if st.button("🔍 Periksa Outlier"):
