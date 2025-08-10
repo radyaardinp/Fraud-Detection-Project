@@ -843,15 +843,15 @@ elif st.session_state.current_step == 3:
                     axes[i].set_title(f"{col}\n(Outliers: {outlier_info[col]})")
                     axes[i].tick_params(axis='x', rotation=45)
                     
-                outlier_method = "iqr_capping"
+                outlier_method = "IQR"
                 
                 plt.tight_layout()
                 st.pyplot(fig)
                 if st.button("🚨 Terapkan Penanganan Outlier"):
                     X_train_processed = st.session_state.X_train.copy()
                     
-                    if outlier_method == "iqr_capping":
-                        # IQR Capping method
+                    if outlier_method == "IQR":
+                        # IQR method
                         for col in numeric_cols:
                             Q1 = X_train_processed[col].quantile(0.25)
                             Q3 = X_train_processed[col].quantile(0.75)
@@ -895,78 +895,57 @@ elif st.session_state.current_step == 3:
                 plt.tight_layout()
                 st.pyplot(fig)
                 
+                 # ======  Normalisasi ======
+                st.markdown("### 📐 Standarisasi Data (MinMax Scaler)")
+            
+                st.write("**Data Sebelum Standarisasi:**")
+                st.dataframe(st.session_state.X_train[numeric_cols].head())
+            
+                if st.button("Terapkan MinMax Scaler"):
+                    from sklearn.preprocessing import MinMaxScaler
+                    scaler = MinMaxScaler()
+            
+                    # Backup sebelum standarisasi
+                    st.session_state.X_train_before_norm = st.session_state.X_train.copy()
+            
+                    # standarisasi training
+                    X_train_scaled = st.session_state.X_train.copy()
+                    X_train_scaled[numeric_cols] = scaler.fit_transform(X_train_scaled[numeric_cols])
+            
+                    # standarisasi testing
+                    X_test_scaled = st.session_state.X_test.copy()
+                    X_test_scaled[numeric_cols] = scaler.transform(X_test_scaled[numeric_cols])
+            
+                    # Simpan hasil standarisasi
+                    st.session_state.X_train = X_train_scaled
+                    st.session_state.X_test = X_test_scaled
+                    st.session_state.scaler = scaler
+                    st.session_state.data_standarized = True
+            
+                    st.success("✅ Data berhasil distandarisasi!")
+                    st.rerun()
+            
+                elif st.session_state.get("data_standarized", False):
+                    st.success("✅ Data sudah distandarisasi!")
+                    st.write("**Data Sebelum Standarisasi:**")
+                    st.dataframe(st.session_state.get("X_train_before_norm", st.session_state.X_train).head())
+                    st.write("**Data Setelah Standarisasi:**")
+                    st.dataframe(st.session_state.X_train[numeric_cols].head())
+            
+                    if st.button("🔄 Reset Standarisasi"):
+                        st.session_state.data_standarized = False
+                        st.rerun()
+            
+                # ====== End Normalisasi ======
                 if st.button("🔄 Ulangi Outlier Handling"):
                     st.session_state.X_train = st.session_state.X_train.copy()
                     st.session_state.outlier_checked = False
                     st.session_state.outlier_handled = False
-                    st.session_state.data_normalized = False
-                    st.rerun()
-        
-        # Normalization Section (only show after outlier handling)
-        if st.session_state.get('outlier_handled', False):
-            st.subheader("📏 Normalisasi Data (MinMax Scaler)")
-            
-            if not st.session_state.get('data_normalized', False):
-                st.write("**Feature Scaling menggunakan MinMax Scaler (0-1)**")
-                
-                # Show current data statistics
-                col1, col2 = st.columns(2)
-                
-                with col1:
-                    st.write("**Statistik Sebelum Normalisasi:**")
-                    stats_before = st.session_state.X_train[numeric_cols].describe()
-                    st.dataframe(stats_before)
-                
-                if st.button("📐 Terapkan MinMax Normalisasi"):
-                    from sklearn.preprocessing import MinMaxScaler
-                    
-                    # Initialize scaler
-                    scaler = MinMaxScaler()
-                    
-                    # Fit and transform training data
-                    X_train_scaled = st.session_state.X_train.copy()
-                    X_train_scaled[numeric_cols] = scaler.fit_transform(X_train_scaled[numeric_cols])
-                    
-                    # Transform test data using the same scaler
-                    X_test_scaled = st.session_state.X_test.copy()
-                    X_test_scaled[numeric_cols] = scaler.transform(X_test_scaled[numeric_cols])
-                    
-                    # Save to session state
-                    st.session_state.X_train = X_train_scaled
-                    st.session_state.X_test = X_test_scaled
-                    st.session_state.scaler = scaler
-                    st.session_state.data_normalized = True
-                    
-                    st.success("✅ Data berhasil dinormalisasi!")
-                    st.rerun()
-            
-            else:
-                st.success("✅ Data sudah dinormalisasi!")
-                
-                col1, col2 = st.columns(2)
-                
-                with col1:
-                    st.write("**Statistik Setelah Normalisasi (Training):**")
-                    stats_after = st.session_state.X_train[numeric_cols].describe()
-                    st.dataframe(stats_after)
-                
-                with col2:
-                    st.write("**Range Data:**")
-                    for col in numeric_cols[:5]:  # Show first 5 columns
-                        min_val = st.session_state.X_train[col].min()
-                        max_val = st.session_state.X_train[col].max()
-                        st.write(f"**{col}**: [{min_val:.3f}, {max_val:.3f}]")
-                
-                if st.button("🔄 Reset Normalisasi"):
-                    # Restore from backup and re-apply outlier handling if needed
-                    st.session_state.data_normalized = False
-                    if st.session_state.get('outlier_handled', False):
-                        # Need to re-apply outlier handling logic here
-                        st.warning("⚠️ Silakan terapkan ulang penanganan outlier sebelum normalisasi")
+                    st.session_state.data_standarized = False
                     st.rerun()
         
         # Training Section (only show after normalization)
-        if st.session_state.get('data_normalized', False):
+        if st.session_state.get('data_standarized', False):
             # Resampling method selection
             st.subheader("⚖️ Pilih Metode Resampling")
             
