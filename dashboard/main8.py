@@ -115,7 +115,18 @@ with col5:
         st.session_state.current_step = 5
         st.rerun()
 
-# ======= Pembuatan Fungsi =======
+# ====== PARAMETER INISIALISASI KATEGORIK & NUMERIK ======
+CAT_COLS = [
+    'merchantId', 'paymentSource', 'status', 'statusCode',
+    'currency', 'type', 'Type Token'
+]
+
+NUM_COLS = [
+    'amount', 'settlementAmount', 'feeAmount', 'discountAmount',
+    'inquiryAmount', 'discount_ratio', 'fee_ratio', 'selisih_waktu_sec'
+]
+
+# ======= Fungsi =======
 @st.cache_data
 def load_data(uploaded_file):
     return pd.read_csv(uploaded_file)
@@ -565,6 +576,7 @@ elif st.session_state.current_step == 2:
             if 'processed_data' in st.session_state and st.session_state.processed_data is not None:
                 try:
                     df = st.session_state.processed_data.copy()
+                    df = convert_data_types(df)
                     df = feature_eng(df)
                     st.session_state.data = df
                     st.session_state.feature_engineered = True
@@ -630,6 +642,14 @@ elif st.session_state.current_step == 2:
         if st.button("🔍 Hitung Feature Importance", type="primary"):
             try:
                 with st.spinner("🔄 Menghitung Mutual Information..."):
+                    X_encoded = prepare_features_for_mi(
+                        st.session_state.data,
+                        target_col='fraud',
+                        cat_cols=CAT_COLS,
+                        num_cols=NUM_COLS
+                    )
+                    y = st.session_state.data['fraud']
+                   
                     # Progress bar
                     progress_bar = st.progress(0)
                     
