@@ -642,12 +642,18 @@ elif st.session_state.current_step == 2:
         if st.button("🔍 Hitung Feature Importance", type="primary"):
             try:
                 with st.spinner("🔄 Menghitung Mutual Information..."):
-                    X_encoded = prepare_features_for_mi(
-                        st.session_state.data,
-                        target_col='fraud',
-                        cat_cols=CAT_COLS,
-                        num_cols=NUM_COLS
-                    )
+                    X = st.session_state.data[CAT_COLS + NUM_COLS].copy()
+
+                    # Encode kategorikal
+                    for col in CAT_COLS:
+                        if col in X.columns:
+                            X[col] = pd.Categorical(X[col]).codes
+        
+                    # Pastikan numerik benar tipenya
+                    for col in NUM_COLS:
+                        if col in X.columns:
+                            X[col] = pd.to_numeric(X[col], errors='coerce')
+        
                     y = st.session_state.data['fraud']
                    
                     # Progress bar
