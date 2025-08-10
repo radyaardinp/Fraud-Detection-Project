@@ -924,16 +924,28 @@ elif st.session_state.current_step == 3:
                 st.dataframe(st.session_state.X_train[selected_features].head())
 
                 if st.button("Terapkan MinMax Scaler"):
-                    scaler = MinMaxScaler()
+                    # Pastikan kolom numerik murni dari hasil feature selection
+                    numeric_cols = [col for col in selected_features 
+                                    if pd.api.types.is_numeric_dtype(st.session_state.X_train[col])]
                 
                     # Backup sebelum standarisasi
                     st.session_state.X_train_before_norm = st.session_state.X_train.copy()
 
                     # Standarisasi hanya kolom numerik
                     X_train_scaled = st.session_state.X_train.copy()
-                    X_train_scaled[numeric_cols] = scaler.fit_transform(X_train_scaled[numeric_cols])
-                
                     X_test_scaled = st.session_state.X_test.copy()
+
+                    # Handle NaN dan tipe data aneh sebelum scaling
+                    for col in numeric_cols:
+                        median_val_train = X_train_scaled[col].median()
+                        X_train_scaled[col] = pd.to_numeric(X_train_scaled[col], errors='coerce').fillna(median_val_train)
+                        X_test_scaled[col] = pd.to_numeric(X_test_scaled[col], errors='coerce').fillna(median_val_train)
+                    
+                    # Inisialisasi scaler
+                    scaler = MinMaxScaler()
+                
+                    # Scaling
+                    X_train_scaled[numeric_cols] = scaler.fit_transform(X_train_scaled[numeric_cols])
                     X_test_scaled[numeric_cols] = scaler.transform(X_test_scaled[numeric_cols])           
             
                     # Simpan hasil standarisasi
