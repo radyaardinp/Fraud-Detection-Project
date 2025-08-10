@@ -914,30 +914,27 @@ elif st.session_state.current_step == 3:
                 
                  # ======  Normalisasi ======
                 st.markdown("### 📐 Standarisasi Data (MinMax Scaler)")
-            
-                st.write("**Data Sebelum Standarisasi:**")
-                st.dataframe(st.session_state.X_train[numeric_cols].head())
-            
+
+                # Ambil selected_features dari session_state
+                selected_features = st.session_state.get("selected_features", st.session_state.X_train.columns.tolist())
+                numeric_cols = [col for col in selected_features if col in st.session_state.X_train.select_dtypes(include=[np.number]).columns]
+
                 if st.button("Terapkan MinMax Scaler"):
                     scaler = MinMaxScaler()
-                    
-                    selected_features = st.session_state.get('selected_features', [])
-                    df_train = st.session_state.X_train[selected_features].copy()
-                    df_test = st.session_state.X_test[selected_features].copy()
-
-                    # Pisahkan kolom numerik saja untuk scaling
-                    numeric_cols = df_train.select_dtypes(include=[np.number]).columns.tolist()
-
+                
                     # Backup sebelum standarisasi
                     st.session_state.X_train_before_norm = st.session_state.X_train.copy()
 
-                    # Scaling hanya numerik
-                    df_train[numeric_cols] = scaler.fit_transform(df_train[numeric_cols])
-                    df_test[numeric_cols] = scaler.transform(df_test[numeric_cols])           
+                    # Standarisasi hanya kolom numerik
+                    X_train_scaled = st.session_state.X_train.copy()
+                    X_train_scaled[numeric_cols] = scaler.fit_transform(X_train_scaled[numeric_cols])
+                
+                    X_test_scaled = st.session_state.X_test.copy()
+                    X_test_scaled[numeric_cols] = scaler.transform(X_test_scaled[numeric_cols])           
             
                     # Simpan hasil standarisasi
-                    st.session_state.X_train = df_train
-                    st.session_state.X_test = df_test
+                    st.session_state.X_train = X_train_scaled
+                    st.session_state.X_test = X_test_scaled
                     st.session_state.scaler = scaler
                     st.session_state.data_standarized = True
             
@@ -947,9 +944,9 @@ elif st.session_state.current_step == 3:
                 elif st.session_state.get("data_standarized", False):
                     st.success("✅ Data sudah distandarisasi!")
                     st.write("**Data Sebelum Standarisasi:**")
-                    st.dataframe(st.session_state.X_train_before_norm.head())
+                    st.dataframe(st.session_state.get("X_train_before_norm", st.session_state.X_train)[selected_features].head())
                     st.write("**Data Setelah Standarisasi:**")
-                    st.dataframe(st.session_state.X_train[numeric_cols].head())
+                    st.dataframe(st.session_state.X_train[selected_features].head())
             
                     if st.button("🔄 Reset Standarisasi"):
                         st.session_state.data_standarized = False
