@@ -644,6 +644,10 @@ elif st.session_state.current_step == 2:
                 with st.spinner("🔄 Menghitung Mutual Information..."):
                     X = st.session_state.data[CAT_COLS + NUM_COLS].copy()
 
+                    # Convert datetime to numeric (timestamp in seconds)
+                    for col in X.select_dtypes(include=['datetime64[ns]', 'datetimetz']).columns:
+                        X[col] = X[col].astype(np.int64) // 10**9
+
                     # Encode kategorikal
                     for col in CAT_COLS:
                         if col in X.columns:
@@ -690,7 +694,7 @@ elif st.session_state.current_step == 2:
                     x='importance score', 
                     y='feature', 
                     orientation='h',
-                    title="Top 15 Features by Mutual Information Score",
+                    title=" Features by Mutual Information Score",
                     color='importance score',
                     color_continuous_scale='viridis'
                 )
