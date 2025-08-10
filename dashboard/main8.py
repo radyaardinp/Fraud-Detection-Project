@@ -944,7 +944,8 @@ elif st.session_state.current_step == 3:
                 elif st.session_state.get("data_standarized", False):
                     st.success("✅ Data sudah distandarisasi!")
                     st.write("**Data Sebelum Standarisasi:**")
-                    st.dataframe(st.session_state.get("X_train_before_norm", st.session_state.X_train).head())
+                    selected_features = st.session_state.get("selected_features", st.session_state.X_train.columns.tolist())
+                    st.dataframe(st.session_state.X_train[selected_features].head())
                     st.write("**Data Setelah Standarisasi:**")
                     st.dataframe(st.session_state.X_train[numeric_cols].head())
             
