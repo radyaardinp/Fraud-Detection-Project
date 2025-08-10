@@ -741,13 +741,14 @@ elif st.session_state.current_step == 3:
         
         with col2:
             if st.button("🔄 Split Dataset") or 'X_train' not in st.session_state:
-                df = st.session_state.processed_data.copy()
+                if 'selected_features' in st.session_state:
+                    selected_features = st.session_state.selected_features
+                    df = st.session_state.processed_data[selected_features + ['fraud']].copy()
+                else:
+                    df = st.session_state.processed_data.copy()
                 
                 X = df.drop(columns=["fraud"])
-                y = df["fraud"]
-
-                # 🔹 Encode target y (Fraud / Not Fraud → 1 / 0)
-                y = y.apply(lambda val: 1 if str(val).lower() == 'fraud' else 0)
+                y = df["fraud"].apply(lambda val: 1 if str(val).lower() == 'fraud' else 0)
                 test_ratio = test_size / 100
                 
                 X_train, X_test, y_train, y_test = train_test_split(
@@ -795,15 +796,6 @@ elif st.session_state.current_step == 3:
         # Outlier Handling Section (only show after data split)
         if st.session_state.get('data_split', False):
             st.subheader("📉 Penanganan Outlier pada Data Training")
-
-             # 🔹 Ambil fitur hasil feature selection
-            selected_features = st.session_state.get(
-                'selected_features',
-                st.session_state.X_train.columns.tolist())
-            
-            # 🔹 Filter hanya fitur terpilih
-            X_train_current = st.session_state.X_train[selected_features].copy()
-            X_test_current = st.session_state.X_test[selected_features].copy()
 
             numeric_cols = st.session_state.X_train.select_dtypes(include=[np.number]).columns.tolist()
             
@@ -910,8 +902,7 @@ elif st.session_state.current_step == 3:
                 st.write("**Data Sebelum Standarisasi:**")
                 st.dataframe(st.session_state.X_train[numeric_cols].head())
             
-                if st.button("Terapkan MinMax Scaler"):
-                    from sklearn.preprocessing import MinMaxScaler
+                if st.button("Terapkan MinMax Scaler")
                     scaler = MinMaxScaler()
             
                     # Backup sebelum standarisasi
