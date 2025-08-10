@@ -920,17 +920,20 @@ elif st.session_state.current_step == 3:
             
                 if st.button("Terapkan MinMax Scaler"):
                     scaler = MinMaxScaler()
-            
+                    
+                    selected_features = st.session_state.get('selected_features', [])
+                    df_train = st.session_state.X_train[selected_features].copy()
+                    df_test = st.session_state.X_test[selected_features].copy()
+
+                    # Pisahkan kolom numerik saja untuk scaling
+                    numeric_cols = df_train.select_dtypes(include=[np.number]).columns.tolist()
+
                     # Backup sebelum standarisasi
                     st.session_state.X_train_before_norm = st.session_state.X_train.copy()
-            
-                    # standarisasi training
-                    X_train_scaled = st.session_state.X_train.copy()
-                    X_train_scaled[numeric_cols] = scaler.fit_transform(X_train_scaled[numeric_cols])
-            
-                    # standarisasi testing
-                    X_test_scaled = st.session_state.X_test.copy()
-                    X_test_scaled[numeric_cols] = scaler.transform(X_test_scaled[numeric_cols])
+
+                    # Scaling hanya numerik
+                    df_train[numeric_cols] = scaler.fit_transform(df_train[numeric_cols])
+                    df_test[numeric_cols] = scaler.transform(df_test[numeric_cols])           
             
                     # Simpan hasil standarisasi
                     st.session_state.X_train = X_train_scaled
@@ -944,8 +947,7 @@ elif st.session_state.current_step == 3:
                 elif st.session_state.get("data_standarized", False):
                     st.success("✅ Data sudah distandarisasi!")
                     st.write("**Data Sebelum Standarisasi:**")
-                    selected_features = st.session_state.get("selected_features", st.session_state.X_train.columns.tolist())
-                    st.dataframe(st.session_state.X_train[selected_features].head())
+                    st.dataframe(st.session_state.X_train_before_norm.head())
                     st.write("**Data Setelah Standarisasi:**")
                     st.dataframe(st.session_state.X_train[numeric_cols].head())
             
