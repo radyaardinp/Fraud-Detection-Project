@@ -367,7 +367,9 @@ if st.session_state.current_step == 1:
     )
     
     if uploaded_file is not None:
-        st.session_state.data = pd.read_csv(uploaded_file)
+        df= pd.read_csv(uploaded_file)
+        df=convery_data_types(df)
+        st.session_state.data = df
         st.success("✅ File berhasil diupload!")
         
         # Dataset preview
