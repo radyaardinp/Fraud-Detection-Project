@@ -756,7 +756,10 @@ elif st.session_state.current_step == 3:
                     stratify=y,
                     random_state=42
                 )
-                
+                # Bersihkan y_train dan y_test lama di session_state
+                st.session_state.pop("y_train", None)
+                st.session_state.pop("y_test", None)
+
                 # Simpan ke session_state
                 st.session_state.X_train = X_train.copy()
                 st.session_state.X_test = X_test.copy()
