@@ -902,7 +902,7 @@ elif st.session_state.current_step == 3:
                 st.write("**Data Sebelum Standarisasi:**")
                 st.dataframe(st.session_state.X_train[numeric_cols].head())
             
-                if st.button("Terapkan MinMax Scaler")
+                if st.button("Terapkan MinMax Scaler"):
                     scaler = MinMaxScaler()
             
                     # Backup sebelum standarisasi
