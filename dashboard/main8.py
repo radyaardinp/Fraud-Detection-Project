@@ -771,8 +771,8 @@ elif st.session_state.current_step == 3:
             col1, col2, col3 = st.columns(3)
             
             with col1:
-            st.metric("Training Samples", len(st.session_state.get("X_train", [])))
-            st.metric("Fraud (Training)", int(sum(st.session_state.get("y_train", []))))
+                st.metric("Training Samples", len(st.session_state.get("X_train", [])))
+                st.metric("Fraud (Training)", int(sum(st.session_state.get("y_train", []))))
         
             with col2:
                 st.metric("Testing Samples", len(st.session_state.get("X_test", [])))
