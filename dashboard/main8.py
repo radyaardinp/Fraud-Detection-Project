@@ -936,8 +936,8 @@ elif st.session_state.current_step == 3:
                     df_test[numeric_cols] = scaler.transform(df_test[numeric_cols])           
             
                     # Simpan hasil standarisasi
-                    st.session_state.X_train = X_train_scaled
-                    st.session_state.X_test = X_test_scaled
+                    st.session_state.X_train = df_train
+                    st.session_state.X_test = df_test
                     st.session_state.scaler = scaler
                     st.session_state.data_standarized = True
             
