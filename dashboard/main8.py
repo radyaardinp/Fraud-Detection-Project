@@ -771,17 +771,21 @@ elif st.session_state.current_step == 3:
             col1, col2, col3 = st.columns(3)
             
             with col1:
-                st.metric("Training Samples", len(st.session_state.X_train))
-                st.metric("Fraud (Training)", sum(st.session_state.y_train))
-            
+            st.metric("Training Samples", len(st.session_state.get("X_train", [])))
+            st.metric("Fraud (Training)", int(sum(st.session_state.get("y_train", []))))
+        
             with col2:
-                st.metric("Testing Samples", len(st.session_state.X_test))
-                st.metric("Fraud (Testing)", sum(st.session_state.y_test))
+                st.metric("Testing Samples", len(st.session_state.get("X_test", [])))
+                st.metric("Fraud (Testing)", int(sum(st.session_state.get("y_test", []))))
             
             with col3:
-                st.metric("Total Features", st.session_state.X_train.shape[1])
-                fraud_rate = (sum(st.session_state.y_train) / len(st.session_state.y_train)) * 100
-                st.metric("Fraud Rate (%)", f"{fraud_rate:.1f}%")
+                st.metric("Total Features", st.session_state.get("X_train", pd.DataFrame()).shape[1])
+                if "y_train" in st.session_state and len(st.session_state.y_train) > 0:
+                    fraud_rate = (sum(st.session_state.y_train) / len(st.session_state.y_train)) * 100
+                    st.metric("Fraud Rate (%)", f"{fraud_rate:.1f}%")
+                else:
+                    st.metric("Fraud Rate (%)", "N/A")
+
         
         # Outlier Handling Section (only show after data split)
         if st.session_state.get('data_split', False):
