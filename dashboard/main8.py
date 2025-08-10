@@ -917,7 +917,11 @@ elif st.session_state.current_step == 3:
 
                 # Ambil selected_features dari session_state
                 selected_features = st.session_state.get("selected_features", st.session_state.X_train.columns.tolist())
-                numeric_cols = [col for col in selected_features if col in st.session_state.X_train.select_dtypes(include=[np.number]).columns]
+                numeric_cols = [
+                    col for col in selected_features
+                    if col in st.session_state.X_train.columns 
+                    and pd.api.types.is_numeric_dtype(st.session_state.X_train[col])
+                ]
 
                 # Data sebelum normalisasi (tampilkan semua fitur hasil feature selection)
                 st.write("**Data Sebelum Standarisasi (Training):**")
