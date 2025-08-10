@@ -928,10 +928,6 @@ elif st.session_state.current_step == 3:
                 st.dataframe(st.session_state.X_train[selected_features].head())
 
                 if st.button("Terapkan MinMax Scaler"):
-                    # Pastikan kolom numerik murni dari hasil feature selection
-                    numeric_cols = [col for col in selected_features 
-                                    if pd.api.types.is_numeric_dtype(st.session_state.X_train[col])]
-                
                     # Backup sebelum standarisasi
                     st.session_state.X_train_before_norm = st.session_state.X_train.copy()
 
