@@ -648,7 +648,7 @@ elif st.session_state.current_step == 2:
                 st.error(f"❌ Error dalam perhitungan: {str(e)}")
         
         # Display Results
-        if 'feature_importance' in st.session_state:
+        if isinstance(st.session_state.get('feature_importance'), pd.DataFrame):
             feature_importance = st.session_state.feature_importance
             selected_features = st.session_state.get('selected_features', [])
             
