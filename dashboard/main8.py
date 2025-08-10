@@ -912,12 +912,16 @@ elif st.session_state.current_step == 3:
                 plt.tight_layout()
                 st.pyplot(fig)
                 
-                 # ======  Normalisasi ======
+                # ======  Normalisasi ======
                 st.markdown("### 📐 Standarisasi Data (MinMax Scaler)")
 
                 # Ambil selected_features dari session_state
                 selected_features = st.session_state.get("selected_features", st.session_state.X_train.columns.tolist())
                 numeric_cols = [col for col in selected_features if col in st.session_state.X_train.select_dtypes(include=[np.number]).columns]
+
+                # Data sebelum normalisasi (tampilkan semua fitur hasil feature selection)
+                st.write("**Data Sebelum Standarisasi (Training):**")
+                st.dataframe(st.session_state.X_train[selected_features].head())
 
                 if st.button("Terapkan MinMax Scaler"):
                     scaler = MinMaxScaler()
