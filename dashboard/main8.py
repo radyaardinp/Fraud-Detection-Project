@@ -193,9 +193,12 @@ def feature_eng(df):
     df['fee_ratio'] = df['feeAmount'] / (df['amount'] + epsilon)
     df['hour_of_day'] = df['createdTime'].dt.hour
     mask = df['updatedTime'].notna() & df['createdTime'].notna()
-    df['selisih_waktu_sec'] = np.where(mask, 
-                                       (df['updatedTime'] - df['createdTime']).dt.total_seconds(),
-                                       np.nan)
+    df['selisih_waktu_sec'] = np.where(
+        mask, 
+        (df['updatedTime'] - df['createdTime']).dt.total_seconds(),
+        np.nan
+    )
+
     return df
 
 #Menghitung Mutual information untuk feature selection
