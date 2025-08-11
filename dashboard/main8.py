@@ -938,6 +938,7 @@ elif st.session_state.current_step == 3:
                     col for col in selected_features
                     if col in st.session_state.X_train.columns 
                     and pd.api.types.is_numeric_dtype(st.session_state.X_train[col])
+                    and st.session_state.X_train[col].notna().any()
                 ]
 
                 # Data sebelum normalisasi (tampilkan semua fitur hasil feature selection)
