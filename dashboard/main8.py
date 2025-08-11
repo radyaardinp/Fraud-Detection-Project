@@ -662,6 +662,23 @@ elif st.session_state.current_step == 2:
         
                     st.session_state.feature_importance = feature_importance
                     st.session_state.selected_features = selected_features
+
+                    # 🔹 Encode processed_data langsung supaya step berikutnya sudah numeric
+                    df_encoded = st.session_state.processed_data.copy()
+                    categorical_cols = df_encoded.select_dtypes(include=['object', 'category']).columns
+                    label_encoders = {}
+                    
+                    if len(categorical_cols) > 0:
+                        for col in categorical_cols:
+                            le = LabelEncoder()
+                            df_encoded[col] = df_encoded[col].astype(str)  # pastikan string
+                            le.fit(df_encoded[col])
+                            df_encoded[col] = le.transform(df_encoded[col])
+                            label_encoders[col] = le
+                    
+                    # Simpan hasil encode dan encoder-nya
+                    st.session_state.processed_data = df_encoded
+                    st.session_state.label_encoders = label_encoders
                     st.success("✅ Feature importance berhasil dihitung!")
             except Exception as e:
                 st.error(f"❌ Error dalam perhitungan: {str(e)}")
