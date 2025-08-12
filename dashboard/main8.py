@@ -628,18 +628,21 @@ elif st.session_state.current_step == 2:
                 max_value=0.1, 
                 value=0.01, 
                 step=0.001,
-                help="Fitur dengan MI score di atas threshold akan dipilih"
-            )
+                help="Fitur dengan MI score di atas threshold akan dipilih")
         
         with col2:
-            st.metric("Total Features", len(X.columns))
-            if 'selected_features_list' in st.session_state:
-                st.metric("Selected Features", len(st.session_state.selected_features_list))
+            st.metric("Total Features", len(X_encoded.columns))
+            if 'feature_importance' in st.session_state:
+                selected_count = len(st.session_state.get('selected_features', []))
+                st.metric("Selected Features", selected_count)
         
         # Calculate Feature Importance
         if st.button("🔍 Hitung Feature Importance", type="primary"):
             try:
                 with st.spinner("🔄 Menghitung Mutual Information..."):
+                    available_cols = [c for c in CAT_COLS + NUM_COLS if c in st.session_state.data.columns]
+                    X = st.session_state.data[available_cols].copy()
+                    
                     # Encode categorical features for MI calculation
                     X_encoded = X.copy()
                     categorical_cols = X_encoded.select_dtypes(include=['object', 'category']).columns
