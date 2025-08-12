@@ -874,7 +874,7 @@ elif st.session_state.current_step == 3:
 
 
                 if st.button("⚡ Terapkan Normalisasi"):
-                     try:
+                    try:
                         # Backup sebelum scaling
                         st.session_state.X_train_before_norm = st.session_state.X_train.copy()
                         st.session_state.X_test_before_norm = st.session_state.X_test.copy()
