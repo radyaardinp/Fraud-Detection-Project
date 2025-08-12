@@ -631,7 +631,10 @@ elif st.session_state.current_step == 2:
                 help="Fitur dengan MI score di atas threshold akan dipilih")
         
         with col2:
-            st.metric("Total Features", len(X_encoded.columns))
+            if 'feature_importance' in st.session_state:
+                st.metric("Total Features", len(st.session_state.feature_importance))
+            else:
+                st.metric("Total Features", len(X.columns))
             if 'feature_importance' in st.session_state:
                 selected_count = len(st.session_state.get('selected_features', []))
                 st.metric("Selected Features", selected_count)
@@ -640,33 +643,47 @@ elif st.session_state.current_step == 2:
         if st.button("🔍 Hitung Feature Importance", type="primary"):
             try:
                 with st.spinner("🔄 Menghitung Mutual Information..."):
-                    available_cols = [c for c in CAT_COLS + NUM_COLS if c in st.session_state.data.columns]
-                    X = st.session_state.data[available_cols].copy()
+                    if 'CAT_COLS' in globals() and 'NUM_COLS' in globals():
+                        available_cols = [c for c in CAT_COLS + NUM_COLS if c in st.session_state.data.columns]
+                    else:
+                        available_cols = X.columns.tolist()
+        
+                    X_sel = st.session_state.data[available_cols].copy()
                     
-                    # Encode categorical features for MI calculation
-                    X_encoded = X.copy()
-                    categorical_cols = X_encoded.select_dtypes(include=['object', 'category']).columns
-                    
+                    # Encode categorical
+                    categorical_cols = X_sel.select_dtypes(include=['object', 'category']).columns
                     for col in categorical_cols:
-                        X_encoded[col] = pd.Categorical(X_encoded[col]).codes
-                    
-                    # Handle datetime columns
-                    for col in X_encoded.select_dtypes(include=['datetime64[ns]', 'datetimetz']).columns:
-                        X_encoded[col] = X_encoded[col].astype(np.int64) // 10**9
-                    
-                    # Ensure all numeric
-                    X_encoded = X_encoded.apply(pd.to_numeric, errors='coerce')
-                    X_encoded = X_encoded.fillna(0)
-                    
-                    # Calculate feature importance
+                        X_sel[col] = pd.Categorical(X_sel[col]).codes
+        
+                    # Convert datetime ke epoch
+                    datetime_cols = X_sel.select_dtypes(include=['datetime64[ns]', 'datetimetz']).columns
+                    for col in datetime_cols:
+                        X_sel[col] = X_sel[col].astype(np.int64) // 10**9
+        
+                    # Pastikan semua numeric dan isi NaN dengan 0
+                    X_encoded = X_sel.apply(pd.to_numeric, errors='coerce').fillna(0)
+        
+                    # Hitung MI
                     feature_importance, selected_features = calculate_feature_importance_mi(X_encoded, y, threshold)
         
-                    # Store results - PERBAIKAN: Simpan sebagai list untuk konsistensi
+                    # Simpan hasil
                     st.session_state.feature_importance = feature_importance
                     st.session_state.selected_features = selected_features
-                    st.session_state.selected_features_list = selected_features['feature'].tolist() if isinstance(selected_features, pd.DataFrame) else list(selected_features)
-                    
-                    st.success("✅ Feature importance berhasil dihitung!")
+                    st.session_state.selected_features_list = (
+                        selected_features['feature'].tolist() if isinstance(selected_features, pd.DataFrame)
+                        else list(selected_features)
+                    )
+        
+                    # Simpan dataset encoded untuk step 3
+                    df_encoded = df.copy()
+                    for col in categorical_cols:
+                        df_encoded[col] = pd.Categorical(df_encoded[col]).codes
+                    for col in datetime_cols:
+                        df_encoded[col] = df_encoded[col].astype(np.int64) // 10**9
+                    df_encoded = df_encoded.apply(pd.to_numeric, errors='coerce').fillna(0)
+                    st.session_state.processed_data_encoded = pd.concat([df_encoded, y], axis=1)
+        
+                    st.success("✅ Feature importance berhasil dihitung & data encoded disimpan untuk analisis!")
             except Exception as e:
                 st.error(f"❌ Error dalam perhitungan: {str(e)}")
         
@@ -696,14 +713,9 @@ elif st.session_state.current_step == 2:
             
             with col2:
                 st.write("**✅ Selected Features**")
-                
                 if isinstance(selected_features, pd.DataFrame) and not selected_features.empty:
-                    st.dataframe(
-                        selected_features, 
-                        use_container_width=True,
-                        height=300
-                    )
-
+                    st.dataframe(selected_features, use_container_width=True, height=300)
+        
         st.markdown("---")
         
         # Navigation buttons
