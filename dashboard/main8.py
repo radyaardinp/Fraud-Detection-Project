@@ -589,8 +589,7 @@ elif st.session_state.current_step == 2:
                 st.plotly_chart(fig, use_container_width=True)
 
         st.markdown("---")
-        
-        # Feature Selection Section
+
         # Feature Selection Section
         st.subheader("🎯 Feature Selection (Mutual Information)")
         
@@ -744,20 +743,26 @@ elif st.session_state.current_step == 3:
                 # PERBAIKAN: Ambil fitur hasil seleksi dengan konsisten
                 selected_features_list = st.session_state.get('selected_features_list', [])
                 
-                # Fallback jika belum ada feature selection
+                # Fallback jika belum ada feature selection - GUNAKAN FILTERED COLS
                 if not selected_features_list:
-                    selected_features_list = [c for c in st.session_state.data.columns if c != 'fraud']
-                    st.warning("⚠️ Menggunakan semua fitur karena feature selection belum dilakukan.")
+                    # Gunakan CAT_COLS + NUM_COLS yang sudah difilter di feature engineering
+                    filtered_cols = st.session_state.get('filtered_cols_used', [])
+                    if filtered_cols:
+                        selected_features_list = [c for c in filtered_cols if c in st.session_state.data.columns]
+                        st.warning(f"⚠️ Menggunakan {len(selected_features_list)} fitur hasil feature engineering (CAT_COLS + NUM_COLS).")
+                    else:
+                        selected_features_list = [c for c in st.session_state.data.columns if c != 'fraud']
+                        st.warning("⚠️ Menggunakan semua fitur karena feature selection belum dilakukan.")
                 
-                # Pastikan fitur ada di dataset
-                available_features = [f for f in selected_features_list if f in st.session_state.data.columns]
+                # Pastikan fitur ada di processed_data (yang sudah di-encode)
+                available_features = [f for f in selected_features_list if f in st.session_state.processed_data.columns]
                 
                 if not available_features:
                     st.error("❌ Tidak ada fitur valid yang ditemukan!")
                     st.stop()
                 
-                # Buat dataset dengan fitur terpilih
-                df_selected = st.session_state.data[available_features + ['fraud']].copy()
+                # Buat dataset dengan fitur terpilih dari processed_data (sudah encoded)
+                df_selected = st.session_state.processed_data[available_features + ['fraud']].copy()
                 
                 X = df_selected.drop(columns=["fraud"])
                 y = df_selected["fraud"].apply(lambda val: 1 if str(val).lower() == 'fraud' else 0)
