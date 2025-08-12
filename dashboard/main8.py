@@ -825,8 +825,20 @@ elif st.session_state.current_step == 3:
                         ]
                         outlier_info[col] = len(outliers)
 
+                    # Tampilkan tabel ringkasan outlier
+                    st.write("**Jumlah Outlier per Kolom:**")
                     st.dataframe(pd.DataFrame(list(outlier_info.items()), columns=["Kolom", "Jumlah Outlier"]))
-
+            
+                    # Boxplot sebelum handling
+                    st.write("**Boxplot Sebelum Outlier Handling:**")
+                    fig, axes = plt.subplots(1, min(3, len(numeric_cols)), figsize=(15, 5))
+                    if len(numeric_cols) == 1:
+                        axes = [axes]
+                    for i, col in enumerate(numeric_cols[:3]):
+                        sns.boxplot(x=st.session_state.X_train[col], ax=axes[i])
+                        axes[i].set_title(f"{col} (Before)")
+                    st.pyplot(fig)
+        
                 if st.button("🚨 Terapkan Penanganan Outlier"):
                     X_train_processed = st.session_state.X_train.copy()
                     for col in numeric_cols:
@@ -837,28 +849,61 @@ elif st.session_state.current_step == 3:
                     st.session_state.X_train = X_train_processed
                     st.session_state.outlier_handled = True
                     st.success("✅ Outlier berhasil ditangani!")
+
+                     # Boxplot sesudah handling
+                    st.write("**Boxplot Setelah Outlier Handling:**")
+                    fig, axes = plt.subplots(1, min(3, len(numeric_cols)), figsize=(15, 5))
+                    if len(numeric_cols) == 1:
+                        axes = [axes]
+                    for i, col in enumerate(numeric_cols[:3]):
+                        sns.boxplot(x=st.session_state.X_train[col], ax=axes[i])
+                        axes[i].set_title(f"{col} (After)")
+                    st.pyplot(fig)
                 
-                # ====== STANDARISASI ======
+            # ====== STANDARISASI ======
             if st.session_state.get("outlier_handled", False) and not st.session_state.get("data_normalized", False):
                 st.subheader("📐 Standarisasi Data (MinMax Scaler)")
                 numeric_cols_for_scaling = [
                     col for col in st.session_state.selected_features_used
-                    if col in st.session_state.X_train.columns and pd.api.types.is_numeric_dtype(st.session_state.X_train[col])
+                    if col in st.session_state.X_train.columns 
+                    and pd.api.types.is_numeric_dtype(st.session_state.X_train[col])
                 ]
-                st.write(f"Fitur numerik yang akan dinormalisasi: {numeric_cols_for_scaling}")
+                # Preview sebelum scaling
+                st.write("**Data Sebelum Normalisasi (Training):**")
+                st.dataframe(st.session_state.X_train[numeric_cols_for_scaling].head())
+
 
                 if st.button("⚡ Terapkan Normalisasi"):
-                    scaler = MinMaxScaler()
-                    X_train_scaled = st.session_state.X_train.copy()
-                    X_test_scaled = st.session_state.X_test.copy()
-
-                    X_train_scaled[numeric_cols_for_scaling] = scaler.fit_transform(X_train_scaled[numeric_cols_for_scaling])
-                    X_test_scaled[numeric_cols_for_scaling] = scaler.transform(X_test_scaled[numeric_cols_for_scaling])
-
-                    st.session_state.X_train = X_train_scaled
-                    st.session_state.X_test = X_test_scaled
-                    st.session_state.data_normalized = True
-                    st.success("✅ Data berhasil dinormalisasi!")
+                     try:
+                        # Backup sebelum scaling
+                        st.session_state.X_train_before_norm = st.session_state.X_train.copy()
+                        st.session_state.X_test_before_norm = st.session_state.X_test.copy()
+            
+                        # Init scaler
+                        scaler = MinMaxScaler()
+            
+                        # Apply scaler hanya ke kolom numerik terpilih
+                        X_train_scaled = st.session_state.X_train.copy()
+                        X_test_scaled = st.session_state.X_test.copy()
+            
+                        X_train_scaled[numeric_cols_for_scaling] = scaler.fit_transform(X_train_scaled[numeric_cols_for_scaling])
+                        X_test_scaled[numeric_cols_for_scaling] = scaler.transform(X_test_scaled[numeric_cols_for_scaling])
+            
+                        # Simpan hasil scaling
+                        st.session_state.X_train = X_train_scaled
+                        st.session_state.X_test = X_test_scaled
+                        st.session_state.scaler = scaler
+                        st.session_state.numeric_cols_scaled = numeric_cols_for_scaling
+                        st.session_state.data_normalized = True
+            
+                        st.success("✅ Data berhasil dinormalisasi!")
+            
+                        # Preview sesudah scaling
+                        st.write("**Data Setelah Normalisasi (Training):**")
+                        st.dataframe(st.session_state.X_train[numeric_cols_for_scaling].head())
+            
+                    except Exception as e:
+                        st.error(f"❌ Error saat normalisasi: {str(e)}")
 
             elif st.session_state.get("data_normalized", False):
                 st.success("✅ Data sudah dinormalisasi, siap untuk modelling!")
