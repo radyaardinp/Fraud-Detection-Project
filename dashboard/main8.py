@@ -440,7 +440,7 @@ if st.session_state.current_step == 1:
             'statusCode': 'Kode status numerik',
             'networkReferenceId': 'Identitas rujukan jaringan pembayaran',
             'settlementAmount': 'Jumlah nominal transaksi yang dikirimkan ke merchant',
-            'inquiryId': 'Jumlah nominal yang direquest pada tahap inquiry',
+            'inquiryAmount': 'Jumlah nominal yang direquest pada tahap inquiry',
             'discountAmount': 'Jumlah nominal diskon',
             'feeAmount': 'Biaya Transaksi',
             'typeToken': 'Jenis tokenisasi'}
