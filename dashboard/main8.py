@@ -652,8 +652,8 @@ elif st.session_state.current_step == 2:
                     st.session_state.processed_data_encoded = df_encoded
         
                     st.success("✅ Feature importance dihitung & data encoded untuk analisis!")
-    except Exception as e:
-        st.error(f"❌ Error saat menghitung MI: {str(e)}")
+            except Exception as e:
+            st.error(f"❌ Error saat menghitung MI: {str(e)}")
                
         # Display Results
         if isinstance(st.session_state.get('feature_importance'), pd.DataFrame):
