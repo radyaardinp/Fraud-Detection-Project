@@ -628,6 +628,32 @@ elif st.session_state.current_step == 2:
             try:
                 with st.spinner("🔄 Menghitung Mutual Information..."):
                     # Encode sementara untuk MI
+                    X_encoded = X.copy()
+                    cat_cols = X_encoded.select_dtypes(include=['object', 'category']).columns
+                    for col in cat_cols:
+                        le = LabelEncoder()
+                        X_encoded[col] = le.fit_transform(X_encoded[col].astype(str))
+        
+                    # Hitung MI
+                    feature_importance, selected_features = calculate_feature_importance_mi(X_encoded, y, threshold)
+                    st.session_state.feature_importance = feature_importance
+                    st.session_state.selected_features = selected_features
+        
+                    # 🔹 Encode seluruh dataset untuk Step 3 (permanen)
+                    df_encoded = df.copy()
+                    cat_cols_full = df_encoded.select_dtypes(include=['object', 'category']).columns
+                    for col in cat_cols_full:
+                        le = LabelEncoder()
+                        df_encoded[col] = le.fit_transform(df_encoded[col].astype(str))
+                    # Konversi datetime
+                    for col in df_encoded.select_dtypes(include=['datetime64[ns]', 'datetimetz']).columns:
+                        df_encoded[col] = df_encoded[col].astype(np.int64) // 10**9
+                    # Simpan versi encoded
+                    st.session_state.processed_data_encoded = df_encoded
+        
+                    st.success("✅ Feature importance dihitung & data encoded untuk analisis!")
+    except Exception as e:
+        st.error(f"❌ Error saat menghitung MI: {str(e)}")
                
         # Display Results
         if isinstance(st.session_state.get('feature_importance'), pd.DataFrame):
@@ -638,9 +664,8 @@ elif st.session_state.current_step == 2:
             
             with col1:
                 st.write("**📊 Feature Importance (MI Score)**")
-                
                 # Interactive bar chart
-                top_features = feature_importance.head(15)  # Show more features
+                top_features = feature_importance.head(15)
                 fig = px.bar(
                     top_features, 
                     x='importance score', 
