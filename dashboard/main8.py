@@ -868,9 +868,18 @@ elif st.session_state.current_step == 3:
                     if col in st.session_state.X_train.columns 
                     and pd.api.types.is_numeric_dtype(st.session_state.X_train[col])
                 ]
+                # Pilih kolom kategorikal yang sudah di-encode
+                categorical_encoded_cols = [
+                    col for col in st.session_state.selected_features_used
+                    if col in st.session_state.X_train.columns 
+                    and not pd.api.types.is_numeric_dtype(st.session_state.X_train[col])
+                ]
+                # Gabungkan untuk preview
+                cols_to_preview = numeric_cols_for_scaling + categorical_encoded_cols
+
                 # Preview sebelum scaling
                 st.write("**Data Sebelum Normalisasi (Training):**")
-                st.dataframe(st.session_state.X_train[numeric_cols_for_scaling].head())
+                st.dataframe(st.session_state.X_train[cols_to_preview].head())
 
 
                 if st.button("⚡ Terapkan Normalisasi"):
@@ -900,7 +909,7 @@ elif st.session_state.current_step == 3:
             
                         # Preview sesudah scaling
                         st.write("**Data Setelah Normalisasi (Training):**")
-                        st.dataframe(st.session_state.X_train[numeric_cols_for_scaling].head())
+                        st.dataframe(st.session_state.X_train[cols_to_preview].head())
             
                     except Exception as e:
                         st.error(f"❌ Error saat normalisasi: {str(e)}")
