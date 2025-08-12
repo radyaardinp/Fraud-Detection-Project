@@ -653,7 +653,7 @@ elif st.session_state.current_step == 2:
         
                     st.success("✅ Feature importance dihitung & data encoded untuk analisis!")
             except Exception as e:
-            st.error(f"❌ Error saat menghitung MI: {str(e)}")
+                st.error(f"❌ Error saat menghitung MI: {str(e)}")
                
         # Display Results
         if isinstance(st.session_state.get('feature_importance'), pd.DataFrame):
