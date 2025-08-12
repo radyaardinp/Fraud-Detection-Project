@@ -631,8 +631,9 @@ elif st.session_state.current_step == 2:
                 help="Fitur dengan MI score di atas threshold akan dipilih")
         
         with col2:
-            if 'feature_importance' in st.session_state:
-                st.metric("Total Features", len(st.session_state.feature_importance))
+            if 'feature_importance' in st.session_state and st.session_state.feature_importance is not None:
+                total_feats = len(st.session_state.feature_importance) if hasattr(st.session_state.feature_importance, '__len__') else 0
+                st.metric("Total Features", total_feats)
                 selected_count = len(st.session_state.get('selected_features_list', []))
                 st.metric("Selected Features", selected_count)
             else:
@@ -654,18 +655,22 @@ elif st.session_state.current_step == 2:
                     categorical_cols = X_sel.select_dtypes(include=['object', 'category']).columns
                     for col in categorical_cols:
                         X_sel[col] = pd.Categorical(X_sel[col]).codes
-        
+                    
                     # Convert datetime ke epoch
                     datetime_cols = X_sel.select_dtypes(include=['datetime64[ns]', 'datetimetz']).columns
                     for col in datetime_cols:
                         X_sel[col] = X_sel[col].astype(np.int64) // 10**9
-        
+                    
                     # Pastikan semua numeric dan isi NaN dengan 0
                     X_encoded = X_sel.apply(pd.to_numeric, errors='coerce').fillna(0)
-        
+                    
+                    # Simpan encoded data + target untuk Step 3
+                    st.session_state.processed_data_encoded = X_encoded.copy()
+                    st.session_state.processed_data_encoded['fraud'] = y.values
+                    
                     # Hitung MI
                     feature_importance, selected_features = calculate_feature_importance_mi(X_encoded, y, threshold)
-        
+                    
                     # Simpan hasil
                     st.session_state.feature_importance = feature_importance
                     st.session_state.selected_features = selected_features
@@ -673,6 +678,7 @@ elif st.session_state.current_step == 2:
                         selected_features['feature'].tolist() if isinstance(selected_features, pd.DataFrame)
                         else list(selected_features)
                     )
+
         
                     # Simpan dataset encoded untuk step 3
                     df_encoded = df.copy()
@@ -739,43 +745,25 @@ elif st.session_state.current_step == 3:
             st.session_state.current_step = 2
             st.rerun()
     else:
-        # Data Splitting Section
+        # ======== Data Splitting =======
         st.subheader("✂️ Pembagian Dataset")
         col1, col2 = st.columns(2)
         
         with col1:
             train_size = st.slider("Training Size (%):", 60, 90, 70)
             test_size = 100 - train_size
-            
-            st.info(f"""
-            **Konfigurasi Split:**
-            - Data Training: {train_size}%
-            - Data Testing: {test_size}%
-            """)
         
         with col2:
             if st.button("🔄 Split Dataset") or 'X_train' not in st.session_state:
-                # PERBAIKAN: Ambil fitur hasil seleksi dengan konsisten
                 selected_features_list = st.session_state.get('selected_features_list', [])
-                
-                # Fallback jika belum ada feature selection - GUNAKAN FILTERED COLS
                 if not selected_features_list:
-                    # Gunakan CAT_COLS + NUM_COLS yang sudah difilter di feature engineering
-                    filtered_cols = st.session_state.get('filtered_cols_used', [])
-                    if filtered_cols:
-                        selected_features_list = [c for c in filtered_cols if c in st.session_state.data.columns]
-                        st.warning(f"⚠️ Menggunakan {len(selected_features_list)} fitur hasil feature engineering (CAT_COLS + NUM_COLS).")
-                    else:
-                        selected_features_list = [c for c in st.session_state.data.columns if c != 'fraud']
-                        st.warning("⚠️ Menggunakan semua fitur karena feature selection belum dilakukan.")
-                
-                # Pastikan fitur ada di processed_data (yang sudah di-encode)
+                    selected_features_list = [c for c in st.session_state.data.columns if c != 'fraud']
+
                 available_features = [f for f in selected_features_list if f in st.session_state.processed_data.columns]
-                
                 if not available_features:
-                    st.error("❌ Tidak ada fitur valid yang ditemukan!")
+                    st.error("❌ Tidak ada fitur valid!")
                     st.stop()
-                
+                    
                 # Buat dataset dengan fitur terpilih dari processed_data (sudah encoded)
                 df_selected = st.session_state.processed_data[available_features + ['fraud']].copy()
                 
@@ -797,11 +785,8 @@ elif st.session_state.current_step == 3:
                 st.session_state.y_test = y_test.copy()
                 st.session_state.selected_features_used = available_features
                 st.session_state.data_split = True
-                
-                # Reset status tahapan berikutnya
                 st.session_state.outlier_handled = False
                 st.session_state.data_normalized = False
-                
                 st.success(f"✅ Dataset berhasil dibagi dengan {len(available_features)} fitur!")
         
         # Show dataset info after splitting
@@ -825,199 +810,58 @@ elif st.session_state.current_step == 3:
         # Outlier Handling Section
         if st.session_state.get('data_split', False):
             st.subheader("📉 Penanganan Outlier pada Data Training")
-
             numeric_cols = st.session_state.X_train.select_dtypes(include=[np.number]).columns.tolist()
             
-            if st.button("🔍 Periksa Outlier"):
-                st.session_state.outlier_checked = True
-                st.session_state.outlier_handled = False
-            
-            # Tampilkan visualisasi SEBELUM handling outlier
-            if st.session_state.get("outlier_checked", False) and not st.session_state.get("outlier_handled", False):
-                st.markdown("### 🔬 Outlier pada Data Training (Sebelum Penanganan)")
-                
-                # Calculate outliers using IQR method
-                outlier_info = {}
-                for col in numeric_cols[:6]:  # Show first 6 numeric columns
-                    Q1 = st.session_state.X_train[col].quantile(0.25)
-                    Q3 = st.session_state.X_train[col].quantile(0.75)
-                    IQR = Q3 - Q1
-                    lower_bound = Q1 - 1.5 * IQR
-                    upper_bound = Q3 + 1.5 * IQR
-                    outliers = st.session_state.X_train[(st.session_state.X_train[col] < lower_bound) | 
-                                                       (st.session_state.X_train[col] > upper_bound)][col]
-                    outlier_info[col] = len(outliers)
-                
-                # Show outlier summary
-                col1, col2 = st.columns(2)
-                
-                with col1:
-                    st.write("**Jumlah Outlier per Kolom:**")
-                    outlier_df = pd.DataFrame(list(outlier_info.items()), columns=['Kolom', 'Jumlah Outlier'])
-                    st.dataframe(outlier_df, use_container_width=True)
-                
-                with col2:
-                    total_outliers = sum(outlier_info.values())
-                    total_samples = len(st.session_state.X_train)
-                    outlier_percentage = (total_outliers / total_samples) * 100
-                    
-                    st.metric("Total Outlier Points", total_outliers)
-                    st.metric("Outlier Percentage", f"{outlier_percentage:.2f}%")
-                
-                # Boxplot visualization
-                if numeric_cols:
-                    fig, axes = plt.subplots(2, 3, figsize=(18, 10))
-                    axes = axes.flatten()
-                    
-                    for i, col in enumerate(numeric_cols[:6]):
-                        if i < len(axes):
-                            sns.boxplot(x=st.session_state.X_train[col], ax=axes[i])
-                            axes[i].set_title(f"{col}\n(Outliers: {outlier_info.get(col, 0)})")
-                            axes[i].tick_params(axis='x', rotation=45)
-                    
-                    # Hide unused subplots
-                    for j in range(len(numeric_cols[:6]), len(axes)):
-                        axes[j].set_visible(False)
-                        
-                    plt.tight_layout()
-                    st.pyplot(fig)
-                
+            if not st.session_state.get("outlier_handled", False):
+                if st.button("🔍 Periksa Outlier"):
+                    outlier_info = {}
+                    for col in numeric_cols:
+                        Q1, Q3 = st.session_state.X_train[col].quantile([0.25, 0.75])
+                        IQR = Q3 - Q1
+                        lower, upper = Q1 - 1.5*IQR, Q3 + 1.5*IQR
+                        outliers = st.session_state.X_train[
+                            (st.session_state.X_train[col] < lower) |
+                            (st.session_state.X_train[col] > upper)
+                        ]
+                        outlier_info[col] = len(outliers)
+
+                    st.dataframe(pd.DataFrame(list(outlier_info.items()), columns=["Kolom", "Jumlah Outlier"]))
+
                 if st.button("🚨 Terapkan Penanganan Outlier"):
                     X_train_processed = st.session_state.X_train.copy()
-                    
-                    # IQR method for outlier handling
                     for col in numeric_cols:
-                        Q1 = X_train_processed[col].quantile(0.25)
-                        Q3 = X_train_processed[col].quantile(0.75)
+                        Q1, Q3 = X_train_processed[col].quantile([0.25, 0.75])
                         IQR = Q3 - Q1
-                        lower_bound = Q1 - 1.5 * IQR
-                        upper_bound = Q3 + 1.5 * IQR
-                        X_train_processed[col] = X_train_processed[col].clip(lower_bound, upper_bound)
-                            
+                        lower, upper = Q1 - 1.5*IQR, Q3 + 1.5*IQR
+                        X_train_processed[col] = X_train_processed[col].clip(lower, upper)
                     st.session_state.X_train = X_train_processed
                     st.session_state.outlier_handled = True
-                    st.session_state.outlier_method_used = "IQR"
-                    st.rerun()
-            
-            # Show results AFTER outlier handling
-            if st.session_state.get("outlier_handled", False):
-                st.markdown("### ✅ Setelah Penanganan Outlier")
+                    st.success("✅ Outlier berhasil ditangani!")
                 
-                # Show before/after comparison
-                col1, col2 = st.columns(2)
-                
-                with col1:
-                    st.write("**Sebelum Penanganan:**")
-                    st.info(f"Shape: {st.session_state.X_train.shape}")
-                
-                with col2:
-                    st.write("**Setelah Penanganan:**")
-                    method_used = st.session_state.get('outlier_method_used', 'IQR')
-                    st.info(f"Shape: {st.session_state.X_train.shape}\nMetode: {method_used}")
-                
-                # Visualization after outlier handling
-                if numeric_cols:
-                    fig, axes = plt.subplots(2, 3, figsize=(18, 10))
-                    axes = axes.flatten()
-                    
-                    for i, col in enumerate(numeric_cols[:6]):
-                        if i < len(axes):
-                            sns.boxplot(x=st.session_state.X_train[col], ax=axes[i])
-                            axes[i].set_title(f"{col} (Setelah Penanganan)")
-                            axes[i].tick_params(axis='x', rotation=45)
-                    
-                    # Hide unused subplots
-                    for j in range(len(numeric_cols[:6]), len(axes)):
-                        axes[j].set_visible(False)
-                        
-                    plt.tight_layout()
-                    st.pyplot(fig)
-                
-                # PERBAIKAN NORMALISASI: Konsistensi penggunaan fitur terpilih
-                st.markdown("### 📐 Standarisasi Data (MinMax Scaler)")
-
-                # Ambil fitur yang digunakan (konsisten dari awal)
-                features_used = st.session_state.get("selected_features_used", st.session_state.X_train.columns.tolist())
-                
-                # Filter hanya kolom numerik yang valid
+                # ====== STANDARISASI ======
+              if st.session_state.get("outlier_handled", False) and not st.session_state.get("data_normalized", False):
+                st.subheader("📐 Standarisasi Data (MinMax Scaler)")
                 numeric_cols_for_scaling = [
-                    col for col in features_used
-                    if col in st.session_state.X_train.columns 
-                    and pd.api.types.is_numeric_dtype(st.session_state.X_train[col])
+                    col for col in st.session_state.selected_features_used
+                    if col in st.session_state.X_train.columns and pd.api.types.is_numeric_dtype(st.session_state.X_train[col])
                 ]
+                st.write(f"Fitur numerik yang akan dinormalisasi: {numeric_cols_for_scaling}")
 
-                st.write(f"**Fitur untuk standarisasi:** {len(numeric_cols_for_scaling)} kolom numerik")
-                
-                # Data sebelum normalisasi
-                st.write("**Data Sebelum Standarisasi (Training):**")
-                st.dataframe(st.session_state.X_train[features_used].head())
+                if st.button("⚡ Terapkan Normalisasi"):
+                    scaler = MinMaxScaler()
+                    X_train_scaled = st.session_state.X_train.copy()
+                    X_test_scaled = st.session_state.X_test.copy()
 
-                if st.button("Terapkan MinMax Scaler"):
-                    try:
-                        # Backup sebelum standarisasi
-                        st.session_state.X_train_before_norm = st.session_state.X_train.copy()
-                        st.session_state.X_test_before_norm = st.session_state.X_test.copy()
+                    X_train_scaled[numeric_cols_for_scaling] = scaler.fit_transform(X_train_scaled[numeric_cols_for_scaling])
+                    X_test_scaled[numeric_cols_for_scaling] = scaler.transform(X_test_scaled[numeric_cols_for_scaling])
 
-                        # Copy data untuk scaling
-                        X_train_scaled = st.session_state.X_train.copy()
-                        X_test_scaled = st.session_state.X_test.copy()
+                    st.session_state.X_train = X_train_scaled
+                    st.session_state.X_test = X_test_scaled
+                    st.session_state.data_normalized = True
+                    st.success("✅ Data berhasil dinormalisasi!")
 
-                        # Handle NaN dan invalid values
-                        for col in numeric_cols_for_scaling:
-                            # Fill NaN dengan median dari training data
-                            median_val = X_train_scaled[col].median()
-                            X_train_scaled[col] = pd.to_numeric(X_train_scaled[col], errors='coerce').fillna(median_val)
-                            X_test_scaled[col] = pd.to_numeric(X_test_scaled[col], errors='coerce').fillna(median_val)
-                        
-                        # Inisialisasi dan apply scaler
-                        scaler = MinMaxScaler()
-                    
-                        if numeric_cols_for_scaling:  # Pastikan ada kolom untuk di-scale
-                            X_train_scaled[numeric_cols_for_scaling] = scaler.fit_transform(X_train_scaled[numeric_cols_for_scaling])
-                            X_test_scaled[numeric_cols_for_scaling] = scaler.transform(X_test_scaled[numeric_cols_for_scaling])
-                        
-                        # Simpan hasil standarisasi
-                        st.session_state.X_train = X_train_scaled
-                        st.session_state.X_test = X_test_scaled
-                        st.session_state.scaler = scaler
-                        st.session_state.data_normalized = True
-                        st.session_state.numeric_cols_scaled = numeric_cols_for_scaling
-                
-                        st.success("✅ Data berhasil distandarisasi!")
-                        st.rerun()
-                        
-                    except Exception as e:
-                        st.error(f"❌ Error dalam standarisasi: {str(e)}")
-            
-                elif st.session_state.get("data_normalized", False):
-                    st.success("✅ Data sudah distandarisasi!")
-                    
-                    # Show before/after comparison
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        st.write("**Data Sebelum Standarisasi:**")
-                        if 'X_train_before_norm' in st.session_state:
-                            st.dataframe(st.session_state.X_train_before_norm[features_used].head())
-                    
-                    with col2:
-                        st.write("**Data Setelah Standarisasi:**")
-                        st.dataframe(st.session_state.X_train[features_used].head())
-                    
-                    scaled_cols = st.session_state.get('numeric_cols_scaled', [])
-                    st.info(f"Kolom yang distandarisasi: {len(scaled_cols)} kolom")
-            
-                    if st.button("🔄 Reset Standarisasi"):
-                        if 'X_train_before_norm' in st.session_state:
-                            st.session_state.X_train = st.session_state.X_train_before_norm.copy()
-                            st.session_state.X_test = st.session_state.X_test_before_norm.copy()
-                        st.session_state.data_normalized = False
-                        st.rerun()
-                
-                if st.button("🔄 Ulangi Outlier Handling"):
-                    st.session_state.outlier_checked = False
-                    st.session_state.outlier_handled = False
-                    st.session_state.data_normalized = False
-                    st.rerun()
+            elif st.session_state.get("data_normalized", False):
+                st.success("✅ Data sudah dinormalisasi, siap untuk modelling!")
         
         # Training Section (only show after normalization)
         if st.session_state.get('data_normalized', False):
