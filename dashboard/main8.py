@@ -839,7 +839,7 @@ elif st.session_state.current_step == 3:
                     st.success("✅ Outlier berhasil ditangani!")
                 
                 # ====== STANDARISASI ======
-              if st.session_state.get("outlier_handled", False) and not st.session_state.get("data_normalized", False):
+            if st.session_state.get("outlier_handled", False) and not st.session_state.get("data_normalized", False):
                 st.subheader("📐 Standarisasi Data (MinMax Scaler)")
                 numeric_cols_for_scaling = [
                     col for col in st.session_state.selected_features_used
