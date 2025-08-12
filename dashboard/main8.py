@@ -365,6 +365,27 @@ def confusion_matrix_plot(cm):
     fig.update_layout(title="Confusion Matrix", width=400, height=400)
     return fig
 
+def encode_full_dataset(df):
+    """Encode semua kolom kategorikal & konversi datetime ke epoch detik."""
+    df_encoded = df.copy()
+    label_encoders = {}
+
+    # Encode categorical columns
+    categorical_cols = df_encoded.select_dtypes(include=['object', 'category']).columns
+    for col in categorical_cols:
+        le = LabelEncoder()
+        df_encoded[col] = df_encoded[col].astype(str)
+        le.fit(df_encoded[col])
+        df_encoded[col] = le.transform(df_encoded[col])
+        label_encoders[col] = le
+
+    # Convert datetime to epoch
+    for col in df_encoded.select_dtypes(include=['datetime64[ns]', 'datetimetz']).columns:
+        df_encoded[col] = df_encoded[col].astype(np.int64) // 10**9
+
+    # Ensure all numeric
+    df_encoded = df_encoded.apply(pd.to_numeric, errors='coerce').fillna(0)
+    return df_encoded, label_encoders
 
 # ========== Halaman UI Dashboard ==========
 if st.session_state.current_step == 1:
@@ -592,97 +613,22 @@ elif st.session_state.current_step == 2:
             st.warning("⚠️ Kolom 'fraud' tidak ditemukan dalam dataset!")
             st.stop()
         
-        # Prepare data
+        # Feature selection process
         df = st.session_state.data
         X = df.drop(['fraud'], axis=1)
         y = df['fraud']
         
-        # Encode categorical features (with caching)
-        if 'X_encoded' not in st.session_state or 'label_encoders' not in st.session_state:
-            with st.spinner("🔄 Encoding categorical features..."):
-                try:
-                    X_encoded = X.copy()
-                    label_encoders = {}
-                    
-                    categorical_cols = X_encoded.select_dtypes(include=['object', 'category']).columns
-                    for col in categorical_cols:
-                        le = LabelEncoder()
-                        X_encoded[col] = le.fit_transform(X_encoded[col])
-                        label_encoders[col] = le
-                    
-                    st.session_state.X_encoded = X_encoded
-                    st.session_state.label_encoders = label_encoders
-                    
-                except Exception as e:
-                    st.error(f"❌ Error dalam encoding: {str(e)}")
-                    st.stop()
-        else:
-            X_encoded = st.session_state.X_encoded
-        
-        # Feature Selection UI
-        col1, col2 = st.columns([2, 1])
-        
-        with col1:
-            threshold = st.slider(
-                "Mutual Information Threshold:", 
-                min_value=0.001, 
-                max_value=0.1, 
-                value=0.01, 
-                step=0.001,
-                help="Fitur dengan MI score di atas threshold akan dipilih"
-            )
-        
-        with col2:
-            st.metric("Total Features", len(X_encoded.columns))
-            if 'feature_importance' in st.session_state:
-                selected_count = len(st.session_state.get('selected_features', []))
-                st.metric("Selected Features", selected_count)
+        threshold = st.slider(
+            "Mutual Information Threshold:",
+            min_value=0.001, max_value=0.1, value=0.01, step=0.001
+        )
         
         # Calculate Feature Importance
         if st.button("🔍 Hitung Feature Importance", type="primary"):
             try:
                 with st.spinner("🔄 Menghitung Mutual Information..."):
-                    available_cols = [c for c in CAT_COLS + NUM_COLS if c in st.session_state.data.columns]
-                    X = st.session_state.data[available_cols].copy()
-                    
-                    for col in X.select_dtypes(include=['datetime64[ns]', 'datetimetz']).columns:
-                        X[col] = X[col].astype(np.int64) // 10**9
-        
-                    for col in CAT_COLS:
-                        if col in X.columns:
-                            X[col] = pd.Categorical(X[col]).codes
-        
-                    for col in NUM_COLS:
-                        if col in X.columns:
-                            X[col] = pd.to_numeric(X[col], errors='coerce')
-        
-                    X = X.apply(pd.to_numeric, errors='coerce')
-                    y = st.session_state.data['fraud']
-                    feature_importance, selected_features = calculate_feature_importance_mi(X, y, threshold)
-        
-                    st.session_state.feature_importance = feature_importance
-                    st.session_state.selected_features = selected_features
-
-                    # 🔹 Encode processed_data langsung supaya step berikutnya sudah numeric
-                    df_encoded = st.session_state.processed_data.copy()
-                    categorical_cols = df_encoded.select_dtypes(include=['object', 'category']).columns
-                    label_encoders = {}
-                    
-                    if len(categorical_cols) > 0:
-                        for col in categorical_cols:
-                            le = LabelEncoder()
-                            df_encoded[col] = df_encoded[col].astype(str)  # pastikan string
-                            le.fit(df_encoded[col])
-                            df_encoded[col] = le.transform(df_encoded[col])
-                            label_encoders[col] = le
-                    
-                    # Simpan hasil encode dan encoder-nya
-                    st.session_state.processed_data = df_encoded
-                    st.session_state.label_encoders = label_encoders
-                    st.success("✅ Feature importance berhasil dihitung!")
-            except Exception as e:
-                st.error(f"❌ Error dalam perhitungan: {str(e)}")
-        
+                    # Encode sementara untuk MI
+               
         # Display Results
         if isinstance(st.session_state.get('feature_importance'), pd.DataFrame):
             feature_importance = st.session_state.feature_importance
