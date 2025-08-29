@@ -611,7 +611,7 @@ elif st.session_state.current_step == 2:
                 ax.set_title("Cramér's V Correlation")
                 st.pyplot(fig)
         
-      st.markdown("---")
+        st.markdown("---")
 
         # Feature Selection Section
         st.subheader("🎯 Feature Selection (Mutual Information)")
