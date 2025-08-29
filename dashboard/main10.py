@@ -581,35 +581,35 @@ elif st.session_state.current_step == 2:
                     title="Distribusi Fraud vs Not Fraud")
                 st.plotly_chart(fig, use_container_width=True)
 
-      with col3:
-        # --- Pearson Correlation (numerik)
-        num_df = st.session_state.data.select_dtypes(include=['int64','float64'])
-        if not num_df.empty:
-            pearson_corr = num_df.corr(method='pearson')
-    
-            fig, ax = plt.subplots(figsize=(5,4))
-            sns.heatmap(pearson_corr, annot=True, cmap="coolwarm", fmt=".2f", ax=ax)
-            ax.set_title("Pearson Correlation")
-            st.pyplot(fig)
-    
-        # --- Cramér’s V (kategorikal)
-        cat_cols = st.session_state.data.select_dtypes(include=['object','category']).columns
-        if len(cat_cols) > 1:
-            cramers_results = pd.DataFrame(index=cat_cols, columns=cat_cols)
-    
-            for c1 in cat_cols:
-                for c2 in cat_cols:
-                    if c1 == c2:
-                        cramers_results.loc[c1, c2] = 1.0
-                    else:
-                        cramers_results.loc[c1, c2] = cramers_v(st.session_state.data[c1], st.session_state.data[c2])
-    
-            cramers_results = cramers_results.astype(float)
-    
-            fig, ax = plt.subplots(figsize=(5,4))
-            sns.heatmap(cramers_results, annot=True, cmap="viridis", fmt=".2f", ax=ax)
-            ax.set_title("Cramér's V Correlation")
-            st.pyplot(fig)
+          with col3:
+            # --- Pearson Correlation (numerik)
+            num_df = st.session_state.data.select_dtypes(include=['int64','float64'])
+            if not num_df.empty:
+                pearson_corr = num_df.corr(method='pearson')
+        
+                fig, ax = plt.subplots(figsize=(5,4))
+                sns.heatmap(pearson_corr, annot=True, cmap="coolwarm", fmt=".2f", ax=ax)
+                ax.set_title("Pearson Correlation")
+                st.pyplot(fig)
+        
+            # --- Cramér’s V (kategorikal)
+            cat_cols = st.session_state.data.select_dtypes(include=['object','category']).columns
+            if len(cat_cols) > 1:
+                cramers_results = pd.DataFrame(index=cat_cols, columns=cat_cols)
+        
+                for c1 in cat_cols:
+                    for c2 in cat_cols:
+                        if c1 == c2:
+                            cramers_results.loc[c1, c2] = 1.0
+                        else:
+                            cramers_results.loc[c1, c2] = cramers_v(st.session_state.data[c1], st.session_state.data[c2])
+        
+                cramers_results = cramers_results.astype(float)
+        
+                fig, ax = plt.subplots(figsize=(5,4))
+                sns.heatmap(cramers_results, annot=True, cmap="viridis", fmt=".2f", ax=ax)
+                ax.set_title("Cramér's V Correlation")
+                st.pyplot(fig)
         
       st.markdown("---")
 
