@@ -615,7 +615,7 @@ elif st.session_state.current_step == 2:
             cramers_results = {}
             for col in available_cat_cols:
                 try:
-                    cramers_results[col] = cramers_v(df[col], df['fraud'])
+                    cramers_results[col] = cramers_v(df[col].astype(str).fillna("Missing"), df['fraud'])
                 except Exception as e:
                     cramers_results[col] = np.nan
         
