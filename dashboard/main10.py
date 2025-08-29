@@ -580,7 +580,7 @@ elif st.session_state.current_step == 2:
                 df['fraud'] = le.fit_transform(df['fraud'].astype(str))
         
             # --- 1. Korelasi Numerik vs Fraud (Pearson)
-            num_cols = ['amount', 'settlementAmount', 'feeAmount', 'inquiryAmount', 'fee_ratio', 'selisih_waktu (sec)', 'fraud_rate']
+            num_cols = ['amount', 'settlementAmount', 'feeAmount', 'inquiryAmount', 'fee_ratio', 'selisih_waktu_sec', 'fraud_rate']
             available_num_cols = [c for c in num_cols if c in df.columns]
         
             if available_num_cols:
