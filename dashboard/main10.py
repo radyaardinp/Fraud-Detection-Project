@@ -8,6 +8,7 @@ import time
 import copy
 import seaborn as sns
 import matplotlib.pyplot as plt
+from scipy.stats import chi2_contingency
 from sklearn.preprocessing import MinMaxScaler, LabelEncoder
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, confusion_matrix
