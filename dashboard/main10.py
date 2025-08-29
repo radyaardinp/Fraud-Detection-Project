@@ -209,12 +209,10 @@ def feature_eng(df):
         (df['updatedTime'] - df['createdTime']).dt.total_seconds(),
         np.nan
     )
-    
-    # --- Convert label fraud jadi numerik (0/1) ---
+
     if 'fraud' in df.columns:
         df['fraud'] = df['fraud'].apply(lambda x: 1 if x == 'Fraud' else 0)
 
-    # --- Fraud rate per merchant ---
     if 'merchantId' in df.columns and 'fraud' in df.columns:
         merchant_stats = df.groupby('merchantId')['fraud'].agg(['sum', 'count'])
         merchant_stats['fraud_rate'] = merchant_stats['sum'] / merchant_stats['count']
@@ -573,7 +571,7 @@ elif st.session_state.current_step == 2:
                     title="Top 10 Merchant dengan Fraud Terbanyak")
                 st.plotly_chart(fig, use_container_width=True)
 
-            df = st.session_state.data.copy()
+            df = feature_eng(st.session_state.data.copy())
             # Pastikan fraud berbentuk numerik (0/1)
             if df['fraud'].dtype == 'object':
                 le = LabelEncoder()
