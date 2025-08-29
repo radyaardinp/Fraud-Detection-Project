@@ -209,6 +209,16 @@ def feature_eng(df):
         (df['updatedTime'] - df['createdTime']).dt.total_seconds(),
         np.nan
     )
+    
+    # --- Convert label fraud jadi numerik (0/1) ---
+    if 'fraud' in df.columns:
+        df['fraud'] = df['fraud'].apply(lambda x: 1 if x == 'Fraud' else 0)
+
+    # --- Fraud rate per merchant ---
+    if 'merchantId' in df.columns and 'fraud' in df.columns:
+        merchant_stats = df.groupby('merchantId')['fraud'].agg(['sum', 'count'])
+        merchant_stats['fraud_rate'] = merchant_stats['sum'] / merchant_stats['count']
+        df = df.merge(merchant_stats[['fraud_rate']], on='merchantId', how='left')
 
     return df
 
@@ -541,7 +551,7 @@ elif st.session_state.current_step == 2:
         # Visualisasi Section
         st.subheader("📊 Visualisasi Data Fraud Detection")
 
-        col1, col2, col3 = st.columns(3)
+        col1, col2 = st.columns(2)
         # 1. Distribusi Payment Source
         with col1:
             if 'paymentSource' in st.session_state.data.columns:
@@ -562,6 +572,24 @@ elif st.session_state.current_step == 2:
                     labels={'x': 'Jumlah Fraud', 'y': 'Merchant'},
                     title="Top 10 Merchant dengan Fraud Terbanyak")
                 st.plotly_chart(fig, use_container_width=True)
+
+            df = st.session_state.data.copy()
+            # Pastikan fraud berbentuk numerik (0/1)
+            if df['fraud'].dtype == 'object':
+                le = LabelEncoder()
+                df['fraud'] = le.fit_transform(df['fraud'].astype(str))
+        
+            # --- 1. Korelasi Numerik vs Fraud (Pearson)
+            num_cols = ['amount', 'settlementAmount', 'feeAmount', 'inquiryAmount', 'fee_ratio', 'selisih_waktu (sec)', 'fraud_rate']
+            available_num_cols = [c for c in num_cols if c in df.columns]
+        
+            if available_num_cols:
+                corr_matrix = df[available_num_cols + ['fraud']].corr()
+        
+                fig, ax = plt.subplots(figsize=(7, 5))
+                sns.heatmap(corr_matrix, annot=True, cmap='coolwarm', fmt=".2f", ax=ax)
+                ax.set_title('Matriks Korelasi Fitur Numerik dan Fraud')
+                st.pyplot(fig)
         
         # 2. Distribusi Status Transaksi
         with col2:
@@ -581,36 +609,33 @@ elif st.session_state.current_step == 2:
                     title="Distribusi Fraud vs Not Fraud")
                 st.plotly_chart(fig, use_container_width=True)
 
-        with col3:
-            # --- Pearson Correlation (numerik)
-            num_df = st.session_state.data.select_dtypes(include=['int64','float64'])
-            if not num_df.empty:
-                pearson_corr = num_df.corr(method='pearson')
+            # --- 2. Korelasi Kategorikal vs Fraud (Cramér’s V)
+            categorical_features = ['paymentSource', 'status', 'statusCode', 'currency', 'type', 'Type Token']
+            available_cat_cols = [c for c in categorical_features if c in df.columns]
         
-                fig, ax = plt.subplots(figsize=(5,4))
-                sns.heatmap(pearson_corr, annot=True, cmap="coolwarm", fmt=".2f", ax=ax)
-                ax.set_title("Pearson Correlation")
-                st.pyplot(fig)
+            cramers_results = {}
+            for col in available_cat_cols:
+                try:
+                    cramers_results[col] = cramers_v(df[col], df['fraud'])
+                except Exception as e:
+                    cramers_results[col] = np.nan
         
-            # --- Cramér’s V (kategorikal)
-            cat_cols = st.session_state.data.select_dtypes(include=['object','category']).columns
-            if len(cat_cols) > 1:
-                cramers_results = pd.DataFrame(index=cat_cols, columns=cat_cols)
+            if cramers_results:
+                cramers_series = pd.Series(cramers_results).sort_values()
         
-                for c1 in cat_cols:
-                    for c2 in cat_cols:
-                        if c1 == c2:
-                            cramers_results.loc[c1, c2] = 1.0
-                        else:
-                            cramers_results.loc[c1, c2] = cramers_v(st.session_state.data[c1], st.session_state.data[c2])
-        
-                cramers_results = cramers_results.astype(float)
-        
-                fig, ax = plt.subplots(figsize=(5,4))
-                sns.heatmap(cramers_results, annot=True, cmap="viridis", fmt=".2f", ax=ax)
-                ax.set_title("Cramér's V Correlation")
-                st.pyplot(fig)
-        
+                # Bar chart interaktif pakai Plotly
+                fig = px.bar(
+                    cramers_series,
+                    x=cramers_series.values,
+                    y=cramers_series.index,
+                    orientation='h',
+                    text=cramers_series.round(3),
+                    labels={'x': "Cramér's V", 'y': "Fitur Kategorikal"},
+                    title="Korelasi Fitur Kategorikal dengan Fraud"
+                )
+                fig.update_traces(textposition='outside')
+                st.plotly_chart(fig, use_container_width=True)
+
         st.markdown("---")
 
         # Feature Selection Section
