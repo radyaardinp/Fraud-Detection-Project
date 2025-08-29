@@ -581,7 +581,7 @@ elif st.session_state.current_step == 2:
                     title="Distribusi Fraud vs Not Fraud")
                 st.plotly_chart(fig, use_container_width=True)
 
-          with col3:
+        with col3:
             # --- Pearson Correlation (numerik)
             num_df = st.session_state.data.select_dtypes(include=['int64','float64'])
             if not num_df.empty:
