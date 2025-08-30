@@ -644,7 +644,8 @@ elif st.session_state.current_step == 2:
         
         # Simpan hasil selection
         df_selected = df[selected_features + ['fraud']]
-        st.session_state.selected_features_list = selected_features
+        st.session_state.df_selected = df_selected  
+        st.session_state.selected_features_list = selected_features  
         
         # Notes untuk menjelaskan
         st.info("""
@@ -695,9 +696,10 @@ elif st.session_state.current_step == 3:
         
         with col2:
             if st.button("🔄 Split Dataset") or 'X_train' not in st.session_state:
-                selected_features = st.session_state.get('selected_features', [])
+                selected_features = st.session_state.get('selected_features_list', [])
                 if not selected_features:
-                    selected_features = [c for c in st.session_state.processed_data.columns if c != 'fraud']
+                    st.error("❌ Belum ada fitur yang dipilih dari tahap Feature Selection!")
+                    st.stop()
 
                 available_features = [f for f in selected_features if f in st.session_state.processed_data.columns]
                 if not available_features:
