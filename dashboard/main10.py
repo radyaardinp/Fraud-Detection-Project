@@ -792,19 +792,22 @@ elif st.session_state.current_step == 3:
                         IQR = Q3 - Q1
                         lower, upper = Q1 - 1.5*IQR, Q3 + 1.5*IQR
                         X_train_processed[col] = X_train_processed[col].clip(lower, upper)
+                    
                     st.session_state.X_train = X_train_processed
                     st.session_state.outlier_handled = True
                     st.success("✅ Outlier berhasil ditangani!")
+                    st.experimental_rerun()
 
                     # Boxplot sesudah handling
-                    st.write("**Boxplot Setelah Outlier Handling:**")
-                    fig, axes = plt.subplots(1, n_cols, figsize=(5*n_cols, 5), squeeze=False)
+                    if st.session_state.get("show_outlier_after", False):
+                        st.write("**Boxplot Setelah Outlier Handling:**")
+                        fig, axes = plt.subplots(1, n_cols, figsize=(5*n_cols, 5), squeeze=False)
                     
-                    for i, col in enumerate(numeric_cols):
-                        sns.boxplot(x=X_train_processed[col], ax=axes[0][i])
-                        axes[0][i].set_title(f"{col} (After)")
+                        for i, col in enumerate(numeric_cols):
+                            sns.boxplot(x=X_train_processed[col], ax=axes[0][i])
+                            axes[0][i].set_title(f"{col} (After)")
                     
-                    st.pyplot(fig)
+                        st.pyplot(fig)
                 
             # ====== STANDARISASI ======
             if st.session_state.get("outlier_handled", False) and not st.session_state.get("data_normalized", False):
