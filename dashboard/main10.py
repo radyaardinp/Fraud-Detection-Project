@@ -742,18 +742,13 @@ elif st.session_state.current_step == 3:
             col1, col2, col3 = st.columns(3)
             
             with col1:
-                st.metric("Training Samples", len(st.session_state.X_train))
-                st.metric("Fraud (Training)", len(st.session_state.y_train))
+                st.metric("Training", len(st.session_state.X_train))
         
             with col2:
-                st.metric("Testing Samples", len(st.session_state.X_test))
-                st.metric("Fraud (Testing)", len(st.session_state.y_test))
-            
+                st.metric("Testing", len(st.session_state.X_test))
+
             with col3:
                 st.metric("Total Features", st.session_state.X_train.shape[1])
-                fraud_rate = (sum(st.session_state.y_train) / len(st.session_state.y_train)) * 100
-                st.metric("Fraud Rate (%)", f"{fraud_rate:.1f}%")
-
         
         # Outlier Handling Section
         if st.session_state.get('data_split', False):
@@ -778,14 +773,15 @@ elif st.session_state.current_step == 3:
                     st.dataframe(pd.DataFrame(list(outlier_info.items()), columns=["Kolom", "Jumlah Outlier"]))
             
                     # Boxplot sebelum handling
-                    st.write("**Boxplot Sebelum Outlier Handling:**")
-                    fig, axes = plt.subplots(1, min(3, len(numeric_cols)), figsize=(15, 5))
-                    if len(numeric_cols) == 1:
-                        axes = [axes]
-                    for i, col in enumerate(numeric_cols[:3]):
-                        sns.boxplot(x=st.session_state.X_train[col], ax=axes[i])
-                        axes[i].set_title(f"{col} (Before)")
-                    st.pyplot(fig)
+                    st.write("**Boxplot Sebelum Handling:**")
+                    n_cols = len(numeric_cols)
+                    fig, axes = plt.subplots(1, n_cols, figsize=(5*n_cols, 5), squeeze=False)
+                    
+                    for i, col in enumerate(numeric_cols):
+                        sns.boxplot(x=X_train_current[col], ax=axes[0][i])
+                        axes[0][i].set_title(f"{col} (Before)")
+                    
+                    st.pyplot(fig))
         
                 if st.button("🚨 Terapkan Penanganan Outlier"):
                     X_train_processed = st.session_state.X_train.copy()
@@ -798,15 +794,15 @@ elif st.session_state.current_step == 3:
                     st.session_state.outlier_handled = True
                     st.success("✅ Outlier berhasil ditangani!")
 
-                     # Boxplot sesudah handling
+                    # Boxplot sesudah handling
                     st.write("**Boxplot Setelah Outlier Handling:**")
-                    fig, axes = plt.subplots(1, min(3, len(numeric_cols)), figsize=(15, 5))
-                    if len(numeric_cols) == 1:
-                        axes = [axes]
-                    for i, col in enumerate(numeric_cols[:3]):
-                        sns.boxplot(x=st.session_state.X_train[col], ax=axes[i])
-                        axes[i].set_title(f"{col} (After)")
-                    st.pyplot(fig)
+                    fig, axes = plt.subplots(1, n_cols, figsize=(5*n_cols, 5), squeeze=False)
+                    
+                    for i, col in enumerate(numeric_cols):
+                        sns.boxplot(x=X_train_processed[col], ax=axes[0][i])
+                        axes[0][i].set_title(f"{col} (After)")
+                    
+                    st.pyplot(fig))
                 
             # ====== STANDARISASI ======
             if st.session_state.get("outlier_handled", False) and not st.session_state.get("data_normalized", False):
