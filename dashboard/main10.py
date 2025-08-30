@@ -706,18 +706,22 @@ elif st.session_state.current_step == 3:
                     st.error("❌ Belum ada fitur yang dipilih dari tahap Feature Selection!")
                     st.stop()
 
-                available_features = [f for f in selected_features if f in st.session_state.processed_data.columns]
+                 # Ambil dataframe hasil feature selection yang sudah encoded
+                if "df_selected" not in st.session_state:
+                    st.error("❌ Data hasil feature selection belum tersedia. Jalankan step Preprocessing & Feature Selection dulu!")
+                    st.stop()
+            
+                df_selected = st.session_state["df_selected"]
+
+                available_features = [f for f in selected_features if f in df_selected.columns]
                 if not available_features:
                     st.error("❌ Tidak ada fitur valid!")
                     st.stop()
-                    
-                # Buat dataset dengan fitur terpilih dari processed_data (sudah encoded)
-                df_selected = st.session_state.processed_data[available_features + ['fraud']].copy()
                 
-                X = df_selected.drop(columns=["fraud"])
+                X = df_selected[available_features].copy
                 y = df_selected["fraud"].apply(lambda val: 1 if str(val).lower() == 'fraud' else 0)
-                test_ratio = test_size / 100
                 
+                test_ratio = test_size / 100
                 X_train, X_test, y_train, y_test = train_test_split(
                     X, y,
                     test_size=test_ratio,
@@ -734,7 +738,6 @@ elif st.session_state.current_step == 3:
                 st.session_state.data_split = True
                 st.session_state.outlier_handled = False
                 st.session_state.data_normalized = False
-                st.success(f"✅ Dataset berhasil dibagi dengan {len(available_features)} fitur!")
         
         # Show dataset info after splitting
         if st.session_state.get('data_split', False):
