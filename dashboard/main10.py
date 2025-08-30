@@ -645,13 +645,6 @@ elif st.session_state.current_step == 2:
         
         # Simpan hasil selection
         df_selected = df[selected_features + ['fraud']]  # pastikan target fraud tetap disertakan
-
-        # Pastikan fraud dalam bentuk numerik 0/1
-        if df_selected['fraud'].dtype == object:
-            df_selected['fraud'] = df_selected['fraud'].apply(lambda x: 1 if str(x).lower() == 'fraud' else 0)
-        
-        # Encode hanya kolom fitur, jangan encode kolom 'fraud'
-        features_only = df_selected.drop(columns=['fraud'])
         df_selected, label_encoders = encode_full_dataset(df_selected)
 
         #Menyimpan hasil ke session state
@@ -726,7 +719,7 @@ elif st.session_state.current_step == 3:
                     st.stop()
                 
                 X = df_selected.drop(columns=["fraud"])
-                y = df_selected["fraud"].apply(lambda val: 1 if str(val).lower() == 'fraud' else 0)
+                y = df_selected["fraud"]
                 test_ratio = test_size / 100
                 
                 X_train, X_test, y_train, y_test = train_test_split(
