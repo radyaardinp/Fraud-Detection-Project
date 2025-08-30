@@ -639,13 +639,12 @@ elif st.session_state.current_step == 2:
 
         # ====== FEATURE SELECTION ======
         st.subheader("🧩 Feature Selection")
+        
         # Fitur yang dipilih untuk pemodelan
         selected_features = ['amount', 'inquiryAmount', 'feeAmount', 'paymentSource', 'fraud_rate']
         
         # Simpan hasil selection
-        df_selected = df[selected_features + ['fraud']]
-        st.session_state.df_selected = df_selected  
-        st.session_state.selected_features_list = selected_features  
+        df_selected = df[selected_features + ['fraud']]  # pastikan target fraud tetap disertakan
         
         # Notes untuk menjelaskan
         st.info("""
@@ -662,6 +661,7 @@ elif st.session_state.current_step == 2:
         
         # Tampilkan dataframe hasil feature selection
         st.dataframe(df_selected.head())
+
         
         st.markdown("---")
         
