@@ -718,7 +718,7 @@ elif st.session_state.current_step == 3:
                     st.error("❌ Tidak ada fitur valid!")
                     st.stop()
                 
-                X = df_selected[available_features].copy
+                X = df_selected.drop(columns=["fraud"])
                 y = df_selected["fraud"].apply(lambda val: 1 if str(val).lower() == 'fraud' else 0)
                 test_ratio = test_size / 100
                 
