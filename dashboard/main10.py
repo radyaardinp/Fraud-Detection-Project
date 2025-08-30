@@ -728,7 +728,6 @@ elif st.session_state.current_step == 3:
                 st.session_state.outlier_handled = False
                 st.session_state.data_normalized = False
                 st.success(f"✅ Dataset berhasil dibagi dengan {len(available_features)} fitur!")
-                st.dataframe(df_selected.head())
         
         # Show dataset info after splitting
         if st.session_state.get('data_split', False):
