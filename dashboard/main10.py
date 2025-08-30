@@ -800,7 +800,7 @@ elif st.session_state.current_step == 3:
                     st.session_state.show_outlier_after = True  # ✅ simpan flag agar boxplot tetap tampil
                 
                     st.success("✅ Outlier berhasil ditangani!")
-                    st.experimental_rerun()
+                    st.rerun()
 
                     if st.session_state.get("show_outlier_after", False):
                         X_train_processed = st.session_state.X_train
