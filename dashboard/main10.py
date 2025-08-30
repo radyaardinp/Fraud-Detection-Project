@@ -785,27 +785,36 @@ elif st.session_state.current_step == 3:
         
                 if st.button("🚨 Terapkan Penanganan Outlier"):
                     X_train_processed = st.session_state.X_train.copy()
+                    numeric_cols = X_train_processed.select_dtypes(include=[np.number]).columns.tolist()
                     n_cols = len(numeric_cols)
-                    
+                
                     for col in numeric_cols:
                         Q1, Q3 = X_train_processed[col].quantile([0.25, 0.75])
                         IQR = Q3 - Q1
                         lower, upper = Q1 - 1.5*IQR, Q3 + 1.5*IQR
                         X_train_processed[col] = X_train_processed[col].clip(lower, upper)
-                    
+                
+                    # Simpan hasil & flag di session_state
                     st.session_state.X_train = X_train_processed
                     st.session_state.outlier_handled = True
-                    st.session_state.show_outlier_after = True
+                    st.session_state.show_outlier_after = True  # ✅ simpan flag agar boxplot tetap tampil
+                
                     st.success("✅ Outlier berhasil ditangani!")
+                    st.experimental_rerun()
 
-                    # Boxplot sesudah handling
                     if st.session_state.get("show_outlier_after", False):
+                        X_train_processed = st.session_state.X_train
+                        numeric_cols = X_train_processed.select_dtypes(include=[np.number]).columns.tolist()
+                        n_cols = len(numeric_cols)
+                    
                         st.write("**Boxplot Setelah Outlier Handling:**")
                         fig, axes = plt.subplots(1, n_cols, figsize=(5*n_cols, 5), squeeze=False)
                     
                         for i, col in enumerate(numeric_cols):
                             sns.boxplot(x=X_train_processed[col], ax=axes[0][i])
-                            axes[0][i].set_title(f"{col} (After)")                
+                            axes[0][i].set_title(f"{col} (After)")
+                    
+                        plt.tight_layout()
                         st.pyplot(fig)
                 
             # ====== STANDARISASI ======
