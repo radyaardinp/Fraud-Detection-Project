@@ -802,7 +802,7 @@ elif st.session_state.current_step == 3:
                         sns.boxplot(x=X_train_processed[col], ax=axes[0][i])
                         axes[0][i].set_title(f"{col} (After)")
                     
-                    st.pyplot(fig))
+                    st.pyplot(fig)
                 
             # ====== STANDARISASI ======
             if st.session_state.get("outlier_handled", False) and not st.session_state.get("data_normalized", False):
