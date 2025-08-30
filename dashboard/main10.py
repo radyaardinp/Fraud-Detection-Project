@@ -738,7 +738,7 @@ elif st.session_state.current_step == 3:
                 st.session_state.data_normalized = False
         
         # Show dataset info after splitting
-        st.session_state.get('data_split', False):
+        st.session_state.get('data_split', False)
         col1, col2, col3 = st.columns(3)
         with col1:
             st.metric("Training", len(st.session_state.X_train))
