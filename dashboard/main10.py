@@ -785,7 +785,6 @@ elif st.session_state.current_step == 3:
         
                 if st.button("🚨 Terapkan Penanganan Outlier"):
                     X_train_processed = st.session_state.X_train.copy()
-                    numeric_cols = X_train_processed.select_dtypes(include=[np.number]).columns.tolist()
                     n_cols = len(numeric_cols)
                     
                     for col in numeric_cols:
