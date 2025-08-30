@@ -768,11 +768,11 @@ elif st.session_state.current_step == 3:
             
             with col1:
                 st.metric("Training Samples", len(st.session_state.X_train))
-                st.metric("Fraud (Training)", len(st.session_state.y_train)))
+                st.metric("Fraud (Training)", len(st.session_state.y_train))
         
             with col2:
                 st.metric("Testing Samples", len(st.session_state.X_test))
-                st.metric("Fraud (Testing)", len(st.session_state.y_test)))
+                st.metric("Fraud (Testing)", len(st.session_state.y_test))
             
             with col3:
                 st.metric("Total Features", st.session_state.X_train.shape[1])
