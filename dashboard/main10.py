@@ -645,6 +645,7 @@ elif st.session_state.current_step == 2:
         
         # Simpan hasil selection
         df_selected = df[selected_features + ['fraud']]  # pastikan target fraud tetap disertakan
+        st.session_state["df_selected"] = df_selected
         
         # Notes untuk menjelaskan
         st.info("""
