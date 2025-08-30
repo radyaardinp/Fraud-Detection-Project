@@ -241,9 +241,9 @@ class FraudDetectionLabeler:
             'fraud_rules': {
                 'failed_multiplier': 2.0,
                 'fail_ratio_high': 0.7,
-                'fail_ratio_medium': 0.5,
-                'fail_interval_threshold': 300,  # seconds
-                'mismatch_ratio_threshold': 0.1
+                'fail_ratio_medium': 0.4,
+                'fail_interval_threshold': 60,  # seconds
+                'mismatch_ratio_threshold': 1.0
             }
         }
 
@@ -284,9 +284,9 @@ class FraudDetectionLabeler:
             failed['createdDate'] = failed['createdTime'].dt.date
 
             interval = failed.groupby(['merchantId', 'createdDate'])['failed_time_diff'].mean().reset_index()
-            interval['failed_time_diff'] = interval['failed_time_diff'].fillna(0)
+            interval['avg_fail_interval'] = interval['avg_fail_interval'].fillna(0)
             df = df.merge(interval, on=['merchantId', 'createdDate'], how='left')
-        df['failed_time_diff'] = df['failed_time_diff'].fillna(0)
+        df['avg_fail_interval'] = df['avg_fail_interval'].fillna(0)
         return df
 
     def calculate_thresholds(self, df):
@@ -315,7 +315,7 @@ class FraudDetectionLabeler:
     def rule_2(self, row):
         c = self.config['fraud_rules']
         if row['failed_count'] > c['failed_multiplier'] * row['avg_failed']:
-            if row['fail_ratio'] > c['fail_ratio_high'] or row['failed_time_diff'] < c['fail_interval_threshold']:
+            if row['fail_ratio'] > c['fail_ratio_high'] or row['avg_fail_interval'] < c['fail_interval_threshold']:
                 return 'Fraud'
         elif row['fail_ratio'] > c['fail_ratio_medium']:
             return 'Fraud'
@@ -330,7 +330,7 @@ class FraudDetectionLabeler:
             # ⛔ Bersihkan sisa kolom labeling sebelumnya, kalau ada
         drop_cols = [
             'createdDate', 'is_declined', 'daily_freq', 'failed_count', 'avg_failed', 'fail_ratio', 
-            'failed_time_diff', 'mismatch', 'mismatch_ratio', 'is_nominal_tinggi', 'label1', 'label2', 'label3'
+            'avg_fail_interval', 'mismatch', 'mismatch_ratio', 'is_nominal_tinggi', 'label1', 'label2', 'label3'
     ]
         df = df.drop(columns=[col for col in drop_cols if col in df.columns], errors='ignore')
 
