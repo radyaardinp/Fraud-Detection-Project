@@ -644,30 +644,11 @@ elif st.session_state.current_step == 2:
         selected_features = ['amount', 'inquiryAmount', 'feeAmount', 'paymentSource', 'fraud_rate']
         
         # Simpan hasil selection
-        # Ambil subset fitur + target
-        df_selected_raw = df[selected_features + ['fraud']].copy()
+        df_selected_raw = df[selected_features + ['fraud']]
+        df_selected, label_encoders = encode_full_dataset(df_selected_raw)
         
-        # Pastikan target fraud dalam format 0/1
-        if df_selected_raw['fraud'].dtype == object:
-            df_selected_raw['fraud'] = df_selected_raw['fraud'].apply(lambda x: 1 if str(x).lower() == 'fraud' else 0)
-        
-        # Pisahkan fitur & target
-        features_only = df_selected_raw.drop(columns=['fraud'])
-        fraud_series = df_selected_raw['fraud']
-        
-        # Encode fitur saja
-        features_encoded, label_encoders = encode_full_dataset(features_only)
-        
-        # Reset index agar sejajar sebelum digabung
-        features_encoded = features_encoded.reset_index(drop=True)
-        fraud_series = fraud_series.reset_index(drop=True)
-        
-        # Gabungkan kembali fitur & target
-        df_selected = pd.concat([features_encoded, fraud_series], axis=1)
-
-
         #Menyimpan hasil ke session state
-        st.session_state["df_selected"] = df_selected
+        st.session_state["df_selected"] = df_selected 
         st.session_state["selected_features_list"] = selected_features
         
         # Notes untuk menjelaskan
@@ -739,12 +720,6 @@ elif st.session_state.current_step == 3:
                 X = df_selected.drop(columns=["fraud"])
                 y = df_selected["fraud"]
                 test_ratio = test_size / 100
-                st.write("X shape:", X.shape)
-                st.write("y shape:", y.shape)
-                st.write("y value_counts:", y.value_counts())
-                st.write("Index X unique:", len(X.index.unique()), "| Index y unique:", len(y.index.unique()))
-                st.write("Index X min/max:", X.index.min(), X.index.max())
-                st.write("Index y min/max:", y.index.min(), y.index.max())
                 
                 X_train, X_test, y_train, y_test = train_test_split(
                     X, y,
