@@ -778,7 +778,7 @@ elif st.session_state.current_step == 3:
                     fig, axes = plt.subplots(1, n_cols, figsize=(5*n_cols, 5), squeeze=False)
                     
                     for i, col in enumerate(numeric_cols):
-                        sns.boxplot(x=X_train[col], ax=axes[0][i])
+                        sns.boxplot(x=st.session_state.X_train[col], ax=axes[0][i])
                         axes[0][i].set_title(f"{col} (Before)")
                     
                     st.pyplot(fig)
