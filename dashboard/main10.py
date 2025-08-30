@@ -644,7 +644,7 @@ elif st.session_state.current_step == 2:
         selected_features = ['amount', 'inquiryAmount', 'feeAmount', 'paymentSource', 'fraud_rate']
         
         # Simpan hasil selection
-        df_selected = df[selected_features + ['fraud']]  # pastikan target fraud tetap disertakan
+        df = df[selected_features + ['fraud']]  # pastikan target fraud tetap disertakan
         
         # Notes untuk menjelaskan
         st.info("""
@@ -662,7 +662,19 @@ elif st.session_state.current_step == 2:
         # Tampilkan dataframe hasil feature selection
         st.dataframe(df_selected.head())
 
-
+        
+        st.markdown("---")
+        
+        # Navigation buttons
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            if st.button("⬅️ Kembali"):
+                st.session_state.current_step = 1
+                st.rerun()
+        with col3:
+            if st.button("➡️ Lanjut ke Analisis", type="primary"):
+                st.session_state.current_step = 3
+                st.rerun()
                 
 elif st.session_state.current_step == 3:
     # Step 3: Analysis
