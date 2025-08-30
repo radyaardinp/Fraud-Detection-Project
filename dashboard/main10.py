@@ -643,7 +643,7 @@ elif st.session_state.current_step == 2:
         selected_features = ['amount', 'inquiryAmount', 'feeAmount', 'paymentSource', 'fraud_rate']
         
         # Simpan hasil selection
-        df_selected = st.session_state.data[selected_features + ['fraud']]
+        df_selected = df[selected_features + ['fraud']]
         st.session_state.selected_features_list = selected_features
         
         # Notes untuk menjelaskan
