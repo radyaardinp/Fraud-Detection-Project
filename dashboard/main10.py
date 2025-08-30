@@ -684,9 +684,8 @@ elif st.session_state.current_step == 2:
         """)
         
         # Tampilkan dataframe hasil feature selection
-        st.dataframe(df_selected_raw.head())
+        st.dataframe(df_selected.head())
 
-        
         st.markdown("---")
         
         # Navigation buttons
