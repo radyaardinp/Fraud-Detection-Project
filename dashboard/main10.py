@@ -797,20 +797,20 @@ elif st.session_state.current_step == 3:
                 
                 st.success("✅ Outlier berhasil ditangani!")
 
-                if st.session_state.get("show_outlier_after", False):
-                    X_train_processed = st.session_state.X_train
-                    numeric_cols = X_train_processed.select_dtypes(include=[np.number]).columns.tolist()
-                    n_cols = len(numeric_cols)
+            if st.session_state.get("show_outlier_after", False):
+                X_train_processed = st.session_state.X_train
+                numeric_cols = X_train_processed.select_dtypes(include=[np.number]).columns.tolist()
+                n_cols = len(numeric_cols)
                     
-                    st.write("**Boxplot Setelah Outlier Handling:**")
-                    fig, axes = plt.subplots(1, n_cols, figsize=(5*n_cols, 5), squeeze=False)
+                st.write("**Boxplot Setelah Outlier Handling:**")
+                fig, axes = plt.subplots(1, n_cols, figsize=(5*n_cols, 5), squeeze=False)
                     
-                    for i, col in enumerate(numeric_cols):
-                        sns.boxplot(x=X_train_processed[col], ax=axes[0][i])
-                        axes[0][i].set_title(f"{col} (After)")
+                for i, col in enumerate(numeric_cols):
+                    sns.boxplot(x=X_train_processed[col], ax=axes[0][i])
+                    axes[0][i].set_title(f"{col} (After)")
                     
-                    plt.tight_layout()
-                    st.pyplot(fig)
+                plt.tight_layout()
+                st.pyplot(fig)
                 
             # ====== STANDARISASI ======
             st.subheader("📐 Standarisasi Data (MinMax Scaler)")
