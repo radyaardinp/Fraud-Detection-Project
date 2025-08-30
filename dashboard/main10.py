@@ -739,6 +739,12 @@ elif st.session_state.current_step == 3:
                 X = df_selected.drop(columns=["fraud"])
                 y = df_selected["fraud"]
                 test_ratio = test_size / 100
+                st.write("X shape:", X.shape)
+                st.write("y shape:", y.shape)
+                st.write("y value_counts:", y.value_counts())
+                st.write("Index X unique:", len(X.index.unique()), "| Index y unique:", len(y.index.unique()))
+                st.write("Index X min/max:", X.index.min(), X.index.max())
+                st.write("Index y min/max:", y.index.min(), y.index.max())
                 
                 X_train, X_test, y_train, y_test = train_test_split(
                     X, y,
