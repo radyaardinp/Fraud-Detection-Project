@@ -738,84 +738,79 @@ elif st.session_state.current_step == 3:
                 st.session_state.data_normalized = False
         
         # Show dataset info after splitting
-        if st.session_state.get('data_split', False):
-            col1, col2, col3 = st.columns(3)
-            
-            with col1:
-                st.metric("Training", len(st.session_state.X_train))
-        
-            with col2:
-                st.metric("Testing", len(st.session_state.X_test))
-
-            with col3:
-                st.metric("Total Features", st.session_state.X_train.shape[1])
+        st.session_state.get('data_split', False):
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Training", len(st.session_state.X_train))
+        with col2:
+            st.metric("Testing", len(st.session_state.X_test))
+        with col3:
+            st.metric("Total Features", st.session_state.X_train.shape[1])
         
         # Outlier Handling Section
-        if st.session_state.get('data_split', False):
-            st.subheader("📉 Penanganan Outlier pada Data Training")
-            numeric_cols = st.session_state.X_train.select_dtypes(include=[np.number]).columns.tolist()
+        st.subheader("📉 Penanganan Outlier pada Data Training")
+        numeric_cols = st.session_state.X_train.select_dtypes(include=[np.number]).columns.tolist()
             
-            if not st.session_state.get("outlier_handled", False):
-                if st.button("🔍 Periksa Outlier"):
-                    outlier_info = {}
-                    for col in numeric_cols:
-                        Q1, Q3 = st.session_state.X_train[col].quantile([0.25, 0.75])
-                        IQR = Q3 - Q1
-                        lower, upper = Q1 - 1.5*IQR, Q3 + 1.5*IQR
-                        outliers = st.session_state.X_train[
-                            (st.session_state.X_train[col] < lower) |
-                            (st.session_state.X_train[col] > upper)
-                        ]
-                        outlier_info[col] = len(outliers)
+        if not st.session_state.get("outlier_handled", False):
+            if st.button("🔍 Periksa Outlier"):
+                outlier_info = {}
+                for col in numeric_cols:
+                    Q1, Q3 = st.session_state.X_train[col].quantile([0.25, 0.75])
+                    IQR = Q3 - Q1
+                    lower, upper = Q1 - 1.5*IQR, Q3 + 1.5*IQR
+                    outliers = st.session_state.X_train[
+                        (st.session_state.X_train[col] < lower) |
+                        (st.session_state.X_train[col] > upper)
+                    ]
+                    outlier_info[col] = len(outliers)
 
-                    # Tampilkan tabel ringkasan outlier
-                    st.write("**Jumlah Outlier per Kolom:**")
-                    st.dataframe(pd.DataFrame(list(outlier_info.items()), columns=["Kolom", "Jumlah Outlier"]))
+                # Tampilkan tabel ringkasan outlier
+                st.write("**Jumlah Outlier per Kolom:**")
+                st.dataframe(pd.DataFrame(list(outlier_info.items()), columns=["Kolom", "Jumlah Outlier"]))
             
-                    # Boxplot sebelum handling
-                    st.write("**Boxplot Sebelum Handling:**")
+                # Boxplot sebelum handling
+                st.write("**Boxplot Sebelum Handling:**")
+                n_cols = len(numeric_cols)
+                fig, axes = plt.subplots(1, n_cols, figsize=(5*n_cols, 5), squeeze=False)
+                    
+                for i, col in enumerate(numeric_cols):
+                    sns.boxplot(x=st.session_state.X_train[col], ax=axes[0][i])
+                    axes[0][i].set_title(f"{col} (Before)")
+                    
+                st.pyplot(fig)
+        
+            if st.button("🚨 Terapkan Penanganan Outlier"):
+                X_train_processed = st.session_state.X_train.copy()
+                numeric_cols = X_train_processed.select_dtypes(include=[np.number]).columns.tolist()
+                n_cols = len(numeric_cols)
+                
+                for col in numeric_cols:
+                    Q1, Q3 = X_train_processed[col].quantile([0.25, 0.75])
+                    IQR = Q3 - Q1
+                    lower, upper = Q1 - 1.5*IQR, Q3 + 1.5*IQR
+                    X_train_processed[col] = X_train_processed[col].clip(lower, upper)
+                
+                # Simpan hasil & flag di session_state
+                st.session_state.X_train = X_train_processed
+                st.session_state.outlier_handled = True
+                st.session_state.show_outlier_after = True  # ✅ simpan flag agar boxplot tetap tampil
+                
+                st.success("✅ Outlier berhasil ditangani!")
+
+                if st.session_state.get("show_outlier_after", False):
+                    X_train_processed = st.session_state.X_train
+                    numeric_cols = X_train_processed.select_dtypes(include=[np.number]).columns.tolist()
                     n_cols = len(numeric_cols)
+                    
+                    st.write("**Boxplot Setelah Outlier Handling:**")
                     fig, axes = plt.subplots(1, n_cols, figsize=(5*n_cols, 5), squeeze=False)
                     
                     for i, col in enumerate(numeric_cols):
-                        sns.boxplot(x=st.session_state.X_train[col], ax=axes[0][i])
-                        axes[0][i].set_title(f"{col} (Before)")
+                        sns.boxplot(x=X_train_processed[col], ax=axes[0][i])
+                        axes[0][i].set_title(f"{col} (After)")
                     
+                    plt.tight_layout()
                     st.pyplot(fig)
-        
-                if st.button("🚨 Terapkan Penanganan Outlier"):
-                    X_train_processed = st.session_state.X_train.copy()
-                    numeric_cols = X_train_processed.select_dtypes(include=[np.number]).columns.tolist()
-                    n_cols = len(numeric_cols)
-                
-                    for col in numeric_cols:
-                        Q1, Q3 = X_train_processed[col].quantile([0.25, 0.75])
-                        IQR = Q3 - Q1
-                        lower, upper = Q1 - 1.5*IQR, Q3 + 1.5*IQR
-                        X_train_processed[col] = X_train_processed[col].clip(lower, upper)
-                
-                    # Simpan hasil & flag di session_state
-                    st.session_state.X_train = X_train_processed
-                    st.session_state.outlier_handled = True
-                    st.session_state.show_outlier_after = True  # ✅ simpan flag agar boxplot tetap tampil
-                
-                    st.success("✅ Outlier berhasil ditangani!")
-                    st.rerun()
-
-                    if st.session_state.get("show_outlier_after", False):
-                        X_train_processed = st.session_state.X_train
-                        numeric_cols = X_train_processed.select_dtypes(include=[np.number]).columns.tolist()
-                        n_cols = len(numeric_cols)
-                    
-                        st.write("**Boxplot Setelah Outlier Handling:**")
-                        fig, axes = plt.subplots(1, n_cols, figsize=(5*n_cols, 5), squeeze=False)
-                    
-                        for i, col in enumerate(numeric_cols):
-                            sns.boxplot(x=X_train_processed[col], ax=axes[0][i])
-                            axes[0][i].set_title(f"{col} (After)")
-                    
-                        plt.tight_layout()
-                        st.pyplot(fig)
                 
             # ====== STANDARISASI ======
             st.subheader("📐 Standarisasi Data (MinMax Scaler)")
