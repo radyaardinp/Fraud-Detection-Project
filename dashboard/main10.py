@@ -645,7 +645,11 @@ elif st.session_state.current_step == 2:
         
         # Simpan hasil selection
         df_selected = df[selected_features + ['fraud']]  # pastikan target fraud tetap disertakan
+        df_selected, label_encoders = encode_full_dataset(df_selected)
+
+        #Menyimpan hasil ke session state
         st.session_state["df_selected"] = df_selected
+        st.session_state["selected_features_list"] = selected_features
         
         # Notes untuk menjelaskan
         st.info("""
