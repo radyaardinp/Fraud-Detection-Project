@@ -720,14 +720,13 @@ elif st.session_state.current_step == 3:
                 
                 X = df_selected[available_features].copy
                 y = df_selected["fraud"].apply(lambda val: 1 if str(val).lower() == 'fraud' else 0)
-                
                 test_ratio = test_size / 100
+                
                 X_train, X_test, y_train, y_test = train_test_split(
                     X, y,
                     test_size=test_ratio,
                     stratify=y,
-                    random_state=42
-                )
+                    random_state=42)
 
                 # Simpan ke session_state
                 st.session_state.X_train = X_train.copy()
