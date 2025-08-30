@@ -644,8 +644,27 @@ elif st.session_state.current_step == 2:
         selected_features = ['amount', 'inquiryAmount', 'feeAmount', 'paymentSource', 'fraud_rate']
         
         # Simpan hasil selection
-        df_selected = df[selected_features + ['fraud']]  # pastikan target fraud tetap disertakan
-        df_selected, label_encoders = encode_full_dataset(df_selected)
+        # Ambil subset fitur + target
+        df_selected_raw = df[selected_features + ['fraud']].copy()
+        
+        # Pastikan target fraud dalam format 0/1
+        if df_selected_raw['fraud'].dtype == object:
+            df_selected_raw['fraud'] = df_selected_raw['fraud'].apply(lambda x: 1 if str(x).lower() == 'fraud' else 0)
+        
+        # Pisahkan fitur & target
+        features_only = df_selected_raw.drop(columns=['fraud'])
+        fraud_series = df_selected_raw['fraud']
+        
+        # Encode fitur saja
+        features_encoded, label_encoders = encode_full_dataset(features_only)
+        
+        # Reset index agar sejajar sebelum digabung
+        features_encoded = features_encoded.reset_index(drop=True)
+        fraud_series = fraud_series.reset_index(drop=True)
+        
+        # Gabungkan kembali fitur & target
+        df_selected = pd.concat([features_encoded, fraud_series], axis=1)
+
 
         #Menyimpan hasil ke session state
         st.session_state["df_selected"] = df_selected
@@ -665,7 +684,7 @@ elif st.session_state.current_step == 2:
         """)
         
         # Tampilkan dataframe hasil feature selection
-        st.dataframe(df_selected.head())
+        st.dataframe(df_selected_raw.head())
 
         
         st.markdown("---")
