@@ -640,27 +640,23 @@ elif st.session_state.current_step == 2:
         # ====== FEATURE SELECTION ======
         st.subheader("🧩 Feature Selection")
         
-        # Fitur yang dipilih untuk pemodelan
-        selected_features = ['amount', 'inquiryAmount', 'feeAmount', 'paymentSource', 'fraud_rate']
+        with st.expander("📌 Feature Selection (Notes)"):
+            selected_features = ['amount', 'inquiryAmount', 'feeAmount', 'paymentSource', 'fraud_rate']
         
-        # Simpan hasil selection
-        df = df[selected_features + ['fraud']]  # pastikan target fraud tetap disertakan
+            st.markdown(
+                """
+                **Catatan:**
+                - Feature selection dilakukan secara manual berdasarkan domain knowledge dan hasil eksplorasi sebelumnya.
+                - Fitur yang digunakan dalam tahap pemodelan adalah:
+                """
+            )
         
-        # Notes untuk menjelaskan
-        st.info("""
-        Pada tahap ini dilakukan **feature selection** untuk menentukan fitur yang akan digunakan dalam proses pemodelan.
-        Fitur dipilih berdasarkan relevansi terhadap deteksi fraud, meliputi:
-        - `amount`
-        - `inquiryAmount`
-        - `feeAmount`
-        - `paymentSource`
-        - `fraud_rate`
+            # Simpan ke session_state
+            st.session_state["selected_features"] = selected_features
         
-        Hanya fitur-fitur tersebut yang digunakan bersama dengan label `fraud` sebagai target.
-        """)
-        
-        # Tampilkan dataframe hasil feature selection
-        st.dataframe(df.head())
+            # Tampilkan fitur terpilih dalam bentuk dataframe
+            df_selected = st.session_state.df[selected_features + ["fraud"]]  # fraud tetap disertakan
+            st.dataframe(df_selected.head())
 
         
         st.markdown("---")
