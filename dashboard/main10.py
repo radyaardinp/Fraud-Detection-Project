@@ -781,7 +781,7 @@ elif st.session_state.current_step == 3:
                         sns.boxplot(x=X_train_current[col], ax=axes[0][i])
                         axes[0][i].set_title(f"{col} (Before)")
                     
-                    st.pyplot(fig))
+                    st.pyplot(fig)
         
                 if st.button("🚨 Terapkan Penanganan Outlier"):
                     X_train_processed = st.session_state.X_train.copy()
