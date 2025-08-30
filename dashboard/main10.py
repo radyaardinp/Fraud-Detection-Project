@@ -283,7 +283,7 @@ class FraudDetectionLabeler:
             failed['failed_time_diff'] = (failed['createdTime'] - failed['prev_time']).dt.total_seconds()
             failed['createdDate'] = failed['createdTime'].dt.date
 
-            interval = failed.groupby(['merchantId', 'createdDate'])['failed_time_diff'].mean().reset_index()
+            interval = failed.groupby(['merchantId', 'createdDate'])['avg_fail_interval'].mean().reset_index()
             interval['avg_fail_interval'] = interval['avg_fail_interval'].fillna(0)
             df = df.merge(interval, on=['merchantId', 'createdDate'], how='left')
         df['avg_fail_interval'] = df['avg_fail_interval'].fillna(0)
