@@ -695,11 +695,11 @@ elif st.session_state.current_step == 3:
         
         with col2:
             if st.button("🔄 Split Dataset") or 'X_train' not in st.session_state:
-                selected_features_list = st.session_state.get('selected_features_list', [])
-                if not selected_features_list:
-                    selected_features_list = [c for c in st.session_state.data.columns if c != 'fraud']
+                selected_features = st.session_state.get('selected_features', [])
+                if not selected_features:
+                    selected_features = [c for c in st.session_state.processed_data.columns if c != 'fraud']
 
-                available_features = [f for f in selected_features_list if f in st.session_state.processed_data.columns]
+                available_features = [f for f in selected_features if f in st.session_state.processed_data.columns]
                 if not available_features:
                     st.error("❌ Tidak ada fitur valid!")
                     st.stop()
@@ -728,6 +728,7 @@ elif st.session_state.current_step == 3:
                 st.session_state.outlier_handled = False
                 st.session_state.data_normalized = False
                 st.success(f"✅ Dataset berhasil dibagi dengan {len(available_features)} fitur!")
+                st.dataframe(df_selected.head())
         
         # Show dataset info after splitting
         if st.session_state.get('data_split', False):
