@@ -1213,7 +1213,7 @@ elif st.session_state.current_step == 4:
                     # Generate LIME explanation
                     exp = explainer.explain_instance(
                         data_row=x,
-                        predict_fn=predict_proba,  # Fixed function name
+                        predict_fn=predict_proba_elm,
                         num_features=min(10, len(feature_names)),
                         num_samples=1000  # Increased for better stability
                     )
