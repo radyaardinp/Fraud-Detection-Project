@@ -902,9 +902,9 @@ elif st.session_state.current_step == 3:
             st.subheader("⚖️ Pilih Metode Resampling")
             
             resampling_options = [
-                ("none", "None - Tanpa resampling"),
-                ("smote", "SMOTE"),
-                ("enn", "ENN")
+                ("Tanpa Resampling", "Tanpa resampling"),
+                ("SMOTE", "SMOTE"),
+                ("ENN", "ENN")
             ]
             
             selected_resampling = st.selectbox(
@@ -917,9 +917,9 @@ elif st.session_state.current_step == 3:
 
             # Fungsi apply resampling
             def apply_resampling(method, X, y):
-                if method == "smote":
+                if method == "SMOTE":
                     return SMOTE(random_state=42).fit_resample(X, y)
-                elif method == "enn":        
+                elif method == "ENN":        
                     return EditedNearestNeighbours().fit_resample(X, y)
                 return X, y
     
@@ -1006,7 +1006,7 @@ elif st.session_state.current_step == 3:
                     act_func = activation_functions[activation_function]
         
                     all_results = []
-                    for method in ["none", "smote", "enn"]:
+                    for method in ["Tanpa Resampling", "SMOTE", "ENN"]:
                         X_res, y_res = apply_resampling(method, X_train, y_train)
                         W, b, beta = train_elm(X_res, y_res, hidden_neurons, activation=act_func)
                         y_pred = predict_elm(X_test, W, b, beta, activation=act_func)
