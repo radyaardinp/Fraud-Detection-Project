@@ -1330,15 +1330,15 @@ elif st.session_state.current_step == 4:
             st.rerun()
         
     with col2:
+        st.write("")  # Placeholder for alignment
+        
+    with col3:
         if st.button("🔄 Reset Dashboard", type="secondary"):
             # Reset all session state
             for key in list(st.session_state.keys()):
                 del st.session_state[key]
             st.session_state.current_step = 1
             st.rerun()
-        
-    with col3:
-        st.write("")  # Placeholder for alignment
 
 # Footer
 st.markdown("---")
