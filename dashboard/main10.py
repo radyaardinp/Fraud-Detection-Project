@@ -1160,8 +1160,8 @@ elif st.session_state.current_step == 4:
         # Buat explainer LIME dengan error handling
         try:
             explainer = LimeTabularExplainer(
-                training_data=X_train.values,
-                feature_names=feature_names,
+                training_data=np.array(X_train),
+                feature_names=X_train.columns,
                 class_names=["Not Fraud", "Fraud"],
                 discretize_continuous=True,
                 mode="classification"
