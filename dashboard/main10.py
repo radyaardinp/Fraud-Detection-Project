@@ -1132,7 +1132,7 @@ elif st.session_state.current_step == 4:
         mengapa model menganggap suatu transaksi sebagai fraud atau tidak.
         """)
         
-        # ambil data & model
+        # Ambil data & model
         X_train = st.session_state.X_train.values
         X_test = st.session_state.X_test.values
         y_test = st.session_state.y_test
@@ -1142,61 +1142,191 @@ elif st.session_state.current_step == 4:
         act_func = params["activation"]
         feature_names = params["feature_names"]
     
-        # definisi fungsi prediksi probabilitas
-        def _predict_proba(batch):
+        # Definisi fungsi prediksi probabilitas (fixed function name)
+        def predict_proba(batch):
             return predict_proba_elm(batch, W, b, beta, activation=act_func)
     
-        # buat explainer LIME
-        explainer = LimeTabularExplainer(
-            training_data=X_train,
-            feature_names=feature_names,
-            class_names=["Not Fraud", "Fraud"],
-            discretize_continuous=True,
-            mode="classification"
-        )
+        # Buat explainer LIME dengan error handling
+        try:
+            explainer = LimeTabularExplainer(
+                training_data=X_train,
+                feature_names=feature_names,
+                class_names=["Not Fraud", "Fraud"],
+                discretize_continuous=True,
+                mode="classification"
+            )
+        except Exception as e:
+            st.error(f"Error creating LIME explainer: {str(e)}")
+            st.stop()
     
-        # pilih transaksi dari test set
-        idx = st.number_input(
-            "Pilih indeks transaksi uji:",
-            min_value=0, max_value=len(X_test)-1, value=0, step=1
-        )
+        # Layout dengan kolom untuk kontrol
+        col1, col2 = st.columns([2, 1])
+        
+        with col1:
+            # Pilih transaksi dari test set
+            idx = st.number_input(
+                "Pilih indeks transaksi uji:",
+                min_value=0, 
+                max_value=len(X_test)-1, 
+                value=0, 
+                step=1,
+                help="Pilih transaksi yang ingin dianalisis menggunakan LIME"
+            )
+        
+        with col2:
+            # Informasi target aktual
+            actual_label = y_test.iloc[idx] if hasattr(y_test, 'iloc') else y_test[idx]
+            st.metric(
+                "Label Aktual", 
+                "Fraud" if actual_label == 1 else "Not Fraud",
+                delta=None
+            )
+        
+        # Tampilkan data transaksi yang dipilih
         x = X_test[idx]
-    
+        
+        with st.expander("📋 Data Transaksi yang Dipilih"):
+            transaction_df = pd.DataFrame({
+                'Fitur': feature_names,
+                'Nilai': x
+            })
+            st.dataframe(transaction_df, use_container_width=True)
+        
+        # Button untuk generate explanation
         if st.button("🧠 Generate LIME Explanation", type="primary"):
-            exp = explainer.explain_instance(
-                data_row=x,
-                predict_fn=_predict_proba,
-                num_features=min(10, len(feature_names))
-            )
+            # Progress indicator
+            with st.spinner("Menganalisis dengan LIME..."):
+                try:
+                    # Generate LIME explanation
+                    exp = explainer.explain_instance(
+                        data_row=x,
+                        predict_fn=predict_proba,  # Fixed function name
+                        num_features=min(10, len(feature_names)),
+                        num_samples=1000  # Increased for better stability
+                    )
     
-            # Probabilitas model
-            proba = _predict_proba(x.reshape(1, -1))[0, 1]
-            st.write(f"**Probabilitas Fraud:** {proba:.4f}  |  **Prediksi:** {'Fraud' if proba >= 0.5 else 'Not Fraud'}")
+                    # Probabilitas model
+                    proba = predict_proba(x.reshape(1, -1))[0, 1]
+                    predicted_class = "Fraud" if proba >= 0.5 else "Not Fraud"
+                    
+                    # Display prediction results
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        st.metric("Probabilitas Fraud", f"{proba:.4f}")
+                    with col2:
+                        st.metric("Prediksi Model", predicted_class)
+                    with col3:
+                        # Accuracy indicator
+                        is_correct = (proba >= 0.5) == (actual_label == 1)
+                        st.metric("Status Prediksi", 
+                                "✅ Benar" if is_correct else "❌ Salah")
     
-            # Kontribusi fitur (tabel)
-            lime_df = pd.DataFrame(exp.as_list(), columns=["Fitur", "Kontribusi"])
-            st.subheader("📊 Kontribusi Fitur terhadap Prediksi")
-            st.dataframe(lime_df, use_container_width=True)
+                    # Kontribusi fitur (tabel)
+                    lime_list = exp.as_list()
+                    lime_df = pd.DataFrame(lime_list, columns=["Fitur", "Kontribusi"])
+                    
+                    # Sort by absolute contribution for better visualization
+                    lime_df['abs_kontribusi'] = abs(lime_df['Kontribusi'])
+                    lime_df = lime_df.sort_values('abs_kontribusi', ascending=True)
+                    
+                    st.subheader("📊 Kontribusi Fitur terhadap Prediksi")
+                    
+                    # Enhanced dataframe display
+                    styled_df = lime_df[['Fitur', 'Kontribusi']].copy()
+                    styled_df['Kontribusi'] = styled_df['Kontribusi'].round(4)
+                    st.dataframe(styled_df, use_container_width=True)
     
-            # Visual bar
-            fig = go.Figure(go.Bar(
-                x=lime_df["Kontribusi"],
-                y=lime_df["Fitur"],
-                orientation="h",
-                marker_color=["red" if c > 0 else "green" for c in lime_df["Kontribusi"]],
-                text=[f"{c:+.2f}" for c in lime_df["Kontribusi"]],
-                textposition="auto"
-            ))
-            fig.update_layout(
-                title="LIME Feature Contributions",
-                xaxis_title="Kontribusi terhadap Prediksi Fraud",
-                height=400
-            )
-            st.plotly_chart(fig, use_container_width=True)
-    
-            # optional: HTML interaktif
-            with st.expander("Lihat visual LIME interaktif (HTML)"):
-                components.html(exp.as_html(), height=800, scrolling=True)
+                    # Enhanced visualization with better colors and formatting
+                    colors = ['#e74c3c' if c > 0 else '#27ae60' for c in lime_df["Kontribusi"]]
+                    
+                    fig = go.Figure(go.Bar(
+                        x=lime_df["Kontribusi"],
+                        y=lime_df["Fitur"],
+                        orientation="h",
+                        marker_color=colors,
+                        text=[f"{c:+.4f}" for c in lime_df["Kontribusi"]],
+                        textposition="auto",
+                        hovertemplate="<b>%{y}</b><br>" +
+                                    "Kontribusi: %{x:.4f}<br>" +
+                                    "<extra></extra>"
+                    ))
+                    
+                    fig.update_layout(
+                        title={
+                            'text': "LIME Feature Contributions",
+                            'x': 0.5,
+                            'xanchor': 'center'
+                        },
+                        xaxis_title="Kontribusi terhadap Prediksi Fraud",
+                        yaxis_title="Fitur",
+                        height=max(400, len(lime_df) * 30),  # Dynamic height
+                        template="plotly_white",
+                        showlegend=False
+                    )
+                    
+                    # Add vertical line at x=0
+                    fig.add_vline(x=0, line_dash="dash", line_color="gray", opacity=0.5)
+                    
+                    st.plotly_chart(fig, use_container_width=True)
+                    
+                    # Interpretation guide
+                    st.subheader("📖 Panduan Interpretasi")
+                    col1, col2 = st.columns(2)
+                    
+                    with col1:
+                        st.markdown("""
+                        **🔴 Kontribusi Positif (Merah)**
+                        - Mendorong prediksi ke arah **Fraud**
+                        - Semakin besar nilai, semakin kuat indikasi fraud
+                        """)
+                    
+                    with col2:
+                        st.markdown("""
+                        **🟢 Kontribusi Negatif (Hijau)**
+                        - Mendorong prediksi ke arah **Not Fraud**
+                        - Semakin kecil (negatif), semakin kuat indikasi legitimate
+                        """)
+                    
+                    # Summary insights
+                    positive_features = lime_df[lime_df['Kontribusi'] > 0]['Fitur'].tolist()
+                    negative_features = lime_df[lime_df['Kontribusi'] < 0]['Fitur'].tolist()
+                    
+                    if positive_features or negative_features:
+                        st.subheader("💡 Insight Utama")
+                        if positive_features:
+                            st.write(f"**Fitur yang mendukung prediksi Fraud:** {', '.join(positive_features[:3])}")
+                        if negative_features:
+                            st.write(f"**Fitur yang mendukung prediksi Not Fraud:** {', '.join(negative_features[:3])}")
+                    
+                    # Optional: HTML interaktif dengan improved styling
+                    with st.expander("🌐 Lihat Visual LIME Interaktif (HTML)"):
+                        try:
+                            html_content = exp.as_html()
+                            components.html(html_content, height=800, scrolling=True)
+                        except Exception as e:
+                            st.error(f"Error generating HTML visualization: {str(e)}")
+                    
+                    # Export explanation option
+                    with st.expander("💾 Export Hasil Analisis"):
+                        # Create summary text
+                        summary_text = f"""
+LIME Analysis Summary
+=====================
+Transaction Index: {idx}
+Actual Label: {'Fraud' if actual_label == 1 else 'Not Fraud'}
+Predicted Label: {predicted_class}
+Fraud Probability: {proba:.4f}
+Prediction Accuracy: {'Correct' if is_correct else 'Incorrect'}
+
+Feature Contributions:
+{lime_df[['Fitur', 'Kontribusi']].to_string(index=False)}
+                        """
+                except Exception as e:
+                    st.error(f"Error generating LIME explanation: {str(e)}")
+                    st.write("Debug info:")
+                    st.write(f"- X shape: {x.shape}")
+                    st.write(f"- Feature names length: {len(feature_names)}")
+                    st.write(f"- Model parameters available: {list(params.keys())}")
         
         # Navigation and Reset
         col1, col2, col3 = st.columns(3)
