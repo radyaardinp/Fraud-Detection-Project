@@ -914,6 +914,14 @@ elif st.session_state.current_step == 3:
                 index=0
             )
             st.session_state.selected_resampling = selected_resampling
+
+            # Fungsi apply resampling
+            def apply_resampling(method, X, y):
+                if method == "smote":
+                    return SMOTE(random_state=42).fit_resample(X, y)
+                elif method == "enn":        
+                    return EditedNearestNeighbours().fit_resample(X, y)
+                return X, y
     
             # ELM Parameters
             if st.session_state.get('data_normalized', False):
@@ -931,14 +939,6 @@ elif st.session_state.current_step == 3:
                     X_test = st.session_state.X_test
                     y_train = st.session_state.y_train
                     y_test = st.session_state.y_test
-            
-                    # Fungsi apply resampling
-                    def apply_resampling(method, X, y):
-                        if method == "smote":
-                            return SMOTE(random_state=42).fit_resample(X, y)
-                        elif method == "enn":
-                            return EditedNearestNeighbours().fit_resample(X, y)
-                        return X, y
             
                     # Jalankan training untuk semua metode resampling
                     results_all = []
@@ -977,22 +977,25 @@ elif st.session_state.current_step == 3:
                 results_all = st.session_state.training_results
                 chosen = results_all[0]   # hanya 1 hasil
                 y_test = st.session_state.y_test
-        
-                st.subheader(f"🔄 Confusion Matrix ({chosen['method'].upper()})")
-                cm = chosen["cm"]
-                fig = go.Figure(data=go.Heatmap(
-                    z=cm,
-                    x=["Pred:0", "Pred:1"],
-                    y=["True:0", "True:1"],
-                    colorscale="Blues",
-                    text=cm,
-                    texttemplate="%{text}"
-                ))
-                st.plotly_chart(fig, use_container_width=True)
-        
-                st.subheader("📊 Classification Report")
-                cr = classification_report(y_test, chosen["y_pred"], target_names=["Not Fraud", "Fraud"], output_dict=True)
-                st.dataframe(pd.DataFrame(cr).T, use_container_width=True)
+
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.subheader(f"🔄 Confusion Matrix ({chosen['method'].upper()})")
+                    cm = chosen["cm"]
+                    fig = go.Figure(data=go.Heatmap(
+                        z=cm,
+                        x=["Pred:0", "Pred:1"],
+                        y=["True:0", "True:1"],
+                        colorscale="Blues",
+                        text=cm,
+                        texttemplate="%{text}"
+                    ))
+                    st.plotly_chart(fig, use_container_width=True)
+                
+                with col2:
+                    st.subheader("📊 Classification Report")
+                    cr = classification_report(y_test, chosen["y_pred"], target_names=["Not Fraud", "Fraud"], output_dict=True)
+                    st.dataframe(pd.DataFrame(cr).T, use_container_width=True)
         
                 # Tombol lihat perbandingan
                 if st.button("📊 Lihat Perbandingan Semua Metode"):
