@@ -951,6 +951,10 @@ elif st.session_state.current_step == 3:
                     np.random.seed(42)
                     W, b, beta = train_elm(X_res, y_res, hidden_neurons, activation=act_func)
                     y_pred = predict_elm(X_test, W, b, beta, activation=act_func)
+
+                    st.session_state.elm_params = {
+                    "W": W, "b": b, "beta": beta, "activation": act_func,
+                    "feature_names": list(st.session_state.X_train.columns)}
             
                     # Metrics
                     acc = accuracy_score(y_test, y_pred)
@@ -1064,6 +1068,16 @@ elif st.session_state.current_step == 3:
                     # Cari metode dengan score terbaik
                     best_idx = comp_df["balance_score"].idxmax()
                     best_row = comp_df.loc[best_idx]
+
+                    #Menyimpan metode yang paling baik
+                    st.session_state.best_model = {
+                        "method": best_row["Method"],
+                        "W": all_results[best_idx]["W"],
+                        "b": all_results[best_idx]["b"],
+                        "beta": all_results[best_idx]["beta"],
+                        "activation": act_func,
+                        "feature_names": list(X_train.columns)
+                    }
                     
                     # Buat style: highlight cuma precision, recall, dan f1 di baris terbaik
                     def highlight_best(row):
@@ -1119,7 +1133,7 @@ elif st.session_state.current_step == 4:
         X_train = st.session_state.X_train.values
         X_test = st.session_state.X_test.values
         y_test = st.session_state.y_test
-        params = st.session_state.elm_params
+        params = st.session_state.best_model
     
         W, b, beta = params["W"], params["b"], params["beta"]
         act_func = params["activation"]
