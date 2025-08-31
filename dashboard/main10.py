@@ -747,70 +747,73 @@ elif st.session_state.current_step == 3:
         with col3:
             st.metric("Total Features", st.session_state.X_train.shape[1])
         
-        # Outlier Handling Section
+        # === OUTLIER HANDLING ===
         st.subheader("📉 Penanganan Outlier pada Data Training")
         numeric_cols = st.session_state.X_train.select_dtypes(include=[np.number]).columns.tolist()
-            
-        if not st.session_state.get("outlier_handled", False):
-            if st.button("🔍 Periksa Outlier"):
-                outlier_info = {}
-                for col in numeric_cols:
-                    Q1, Q3 = st.session_state.X_train[col].quantile([0.25, 0.75])
-                    IQR = Q3 - Q1
-                    lower, upper = Q1 - 1.5*IQR, Q3 + 1.5*IQR
-                    outliers = st.session_state.X_train[
-                        (st.session_state.X_train[col] < lower) |
-                        (st.session_state.X_train[col] > upper)
-                    ]
-                    outlier_info[col] = len(outliers)
-
-                # Tampilkan tabel ringkasan outlier
-                st.write("**Jumlah Outlier per Kolom:**")
-                st.dataframe(pd.DataFrame(list(outlier_info.items()), columns=["Kolom", "Jumlah Outlier"]))
-            
-                # Boxplot sebelum handling
-                st.write("**Boxplot Sebelum Handling:**")
-                n_cols = len(numeric_cols)
-                fig, axes = plt.subplots(1, n_cols, figsize=(5*n_cols, 5), squeeze=False)
-                    
-                for i, col in enumerate(numeric_cols):
-                    sns.boxplot(x=st.session_state.X_train[col], ax=axes[0][i])
-                    axes[0][i].set_title(f"{col} (Before)")
-                    
-                st.pyplot(fig)
         
-            if st.button("🚨 Terapkan Penanganan Outlier"):
-                X_train_processed = st.session_state.X_train.copy()
-                numeric_cols = X_train_processed.select_dtypes(include=[np.number]).columns.tolist()
-                n_cols = len(numeric_cols)
-                
-                for col in numeric_cols:
-                    Q1, Q3 = X_train_processed[col].quantile([0.25, 0.75])
-                    IQR = Q3 - Q1
-                    lower, upper = Q1 - 1.5*IQR, Q3 + 1.5*IQR
-                    X_train_processed[col] = X_train_processed[col].clip(lower, upper)
-                
-                # Simpan hasil & flag di session_state
-                st.session_state.X_train = X_train_processed
-                st.session_state.outlier_handled = True
-                st.session_state.show_outlier_after = True  # ✅ simpan flag agar boxplot tetap tampil
-                
-                st.success("✅ Outlier berhasil ditangani!")
+        # --- Tombol cek outlier ---
+        if st.button("🔍 Periksa Outlier"):
+            outlier_info = {}
+            for col in numeric_cols:
+                Q1, Q3 = st.session_state.X_train[col].quantile([0.25, 0.75])
+                IQR = Q3 - Q1
+                lower, upper = Q1 - 1.5*IQR, Q3 + 1.5*IQR
+                outliers = st.session_state.X_train[
+                    (st.session_state.X_train[col] < lower) |
+                    (st.session_state.X_train[col] > upper)
+                ]
+                outlier_info[col] = len(outliers)
+        
+            # Simpan hasil perhitungan ke session_state
+            st.session_state.outlier_info = outlier_info
+            st.session_state.outlier_checked = True
+        
+        # --- Selalu tampilkan kalau sudah dicek ---
+        if st.session_state.get("outlier_checked", False):
+            st.write("**Jumlah Outlier per Kolom:**")
+            st.dataframe(pd.DataFrame(
+                list(st.session_state.outlier_info.items()), 
+                columns=["Kolom", "Jumlah Outlier"]
+            ))
+        
+            st.write("**Boxplot Sebelum Handling:**")
+            fig, axes = plt.subplots(1, len(numeric_cols), figsize=(5*len(numeric_cols), 5), squeeze=False)
+            for i, col in enumerate(numeric_cols):
+                sns.boxplot(x=st.session_state.X_train[col], ax=axes[0][i])
+                axes[0][i].set_title(f"{col} (Before)")
+            plt.tight_layout()
+            st.pyplot(fig)
+        
+        
+        # --- Tombol handle outlier ---
+        if st.button("🚨 Terapkan Penanganan Outlier"):
+            X_train_processed = st.session_state.X_train.copy()
+            for col in numeric_cols:
+                Q1, Q3 = X_train_processed[col].quantile([0.25, 0.75])
+                IQR = Q3 - Q1
+                lower, upper = Q1 - 1.5*IQR, Q3 + 1.5*IQR
+                X_train_processed[col] = X_train_processed[col].clip(lower, upper)
+        
+            # simpan hasil
+            st.session_state.X_train = X_train_processed
+            st.session_state.X_train_after_outlier = X_train_processed.copy()  # 👈 backup untuk plot
+            st.session_state.outlier_handled = True
+            st.success("✅ Outlier berhasil ditangani!")
+        
+        
+        # --- Selalu tampilkan boxplot after kalau sudah handle ---
+        if st.session_state.get("outlier_handled", False):
+            st.write("**Boxplot Setelah Outlier Handling:**")
+            X_train_for_plot = st.session_state.X_train_after_outlier  # 👈 pakai backup, biar ga ketimpa normalisasi
+            numeric_cols = X_train_for_plot.select_dtypes(include=[np.number]).columns.tolist()
+        
+            fig, axes = plt.subplots(1, len(numeric_cols), figsize=(5*len(numeric_cols), 5), squeeze=False)
+            for i, col in enumerate(numeric_cols):
+                sns.boxplot(x=X_train_for_plot[col], ax=axes[0][i])
+                axes[0][i].set_title(f"{col} (After)")
+            plt.tight_layout()
+            st.pyplot(fig)
 
-            if st.session_state.get("show_outlier_after", False):
-                X_train_processed = st.session_state.X_train
-                numeric_cols = X_train_processed.select_dtypes(include=[np.number]).columns.tolist()
-                n_cols = len(numeric_cols)
-                    
-                st.write("**Boxplot Setelah Outlier Handling:**")
-                fig, axes = plt.subplots(1, n_cols, figsize=(5*n_cols, 5), squeeze=False)
-                    
-                for i, col in enumerate(numeric_cols):
-                    sns.boxplot(x=X_train_processed[col], ax=axes[0][i])
-                    axes[0][i].set_title(f"{col} (After)")
-                    
-                plt.tight_layout()
-                st.pyplot(fig)
                 
             # ====== STANDARISASI ======
             st.subheader("📐 Standarisasi Data (MinMax Scaler)")
