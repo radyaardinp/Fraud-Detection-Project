@@ -390,6 +390,12 @@ def encode_full_dataset(df):
 def sigmoid(x):
     return 1 / (1 + np.exp(-x))
 
+def tanh(x):
+    return np.tanh(x)
+
+def relu(x):
+    return np.maximum(0, x)
+
 # Fungsi Training ELM
 def train_elm(X_train, y_train, hidden_neurons, activation=sigmoid, seed=42):
     np.random.seed(seed)
@@ -747,7 +753,7 @@ elif st.session_state.current_step == 3:
                     stratify=y,
                     random_state=42)
 
-                # Simpan ke session_state
+                # Simpan ke nromsession_state
                 st.session_state.X_train = X_train.copy()
                 st.session_state.X_test = X_test.copy()
                 st.session_state.y_train = y_train.copy()
@@ -916,30 +922,33 @@ elif st.session_state.current_step == 3:
                 with col1:
                     hidden_neurons = st.slider("Jumlah Hidden Neuron:", min_value=50, max_value=500, value=100, step=10)
                 with col2:
-                    activation_function = st.selectbox("Fungsi Aktivasi:", ["sigmoid"])  # untuk sekarang baru sigmoid
+                    activation_functions = {"sigmoid": sigmoid, "tanh": tanh, "relu": relu}
+                    activation_function = st.selectbox("Fungsi Aktivasi:", list(activation_functions.keys()))
             
                 if st.button("🚀 Mulai Training ELM", type="primary"):
                     # Data split
-                    X = st.session_state.X
-                    y = st.session_state.y
-                    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42, stratify=y)
+                    X_train = st.session_state.X_train
+                    X_test = st.session_state.X_test
+                    y_train = st.session_state.y_train
+                    y_test = st.session_state.y_test
             
                     # Fungsi apply resampling
-                    def apply_resampling(method, X_train, y_train):
+                    def apply_resampling(method, X, y):
                         if method == "smote":
-                            return SMOTE(random_state=42).fit_resample(X_train, y_train)
+                            return SMOTE(random_state=42).fit_resample(X, y)
                         elif method == "enn":
-                            return EditedNearestNeighbours().fit_resample(X_train, y_train)
-                        return X_train, y_train
+                            return EditedNearestNeighbours().fit_resample(X, y)
+                        return X, y
             
                     # Jalankan training untuk semua metode resampling
                     results_all = []
                     for method in ["none", "smote", "enn"]:
                         X_res, y_res = apply_resampling(method, X_train, y_train)
+                        act_func = activation_functions[activation_choice]
             
                         # Train & Predict ELM
-                        W, b, beta = train_elm(X_res, y_res, hidden_neurons)
-                        y_pred = predict_elm(X_test, W, b, beta)
+                        W, b, beta = train_elm(X_res, y_res, hidden_neurons, activation=act_func)
+                        y_pred = predict_elm(X_test, W, b, beta, activation=act_func)
             
                         # Metrics
                         acc = accuracy_score(y_test, y_pred)
@@ -959,6 +968,7 @@ elif st.session_state.current_step == 3:
                         })
             
                     st.session_state.training_results = results_all
+                    st.session_state.y_test = y_test
                     st.session_state.model_trained = True
                     st.success("✅ Training selesai! Hasil evaluasi ditampilkan di bawah.")
                     st.rerun()
@@ -966,12 +976,13 @@ elif st.session_state.current_step == 3:
             # Evaluasi Pemodelan
             if st.session_state.get('model_trained', False):
                 results_all = st.session_state.training_results
+                st.session_state.y_test = y_test
             
-                # tampilkan confusion matrix untuk metode terakhir yang dipilih
-                selected_method = "none"  # default tampilkan non-resampling
-                chosen = [r for r in results_all if r["method"] == selected_method][0]
+                # pilih metode untuk lihat detail
+                method_choice = st.selectbox("🔍 Lihat detail evaluasi untuk metode:", ["none", "smote", "enn"])
+                chosen = [r for r in results_all if r["method"] == method_choice][0]
             
-                st.subheader("🔄 Confusion Matrix")
+                st.subheader(f"🔄 Confusion Matrix ({method_choice.upper()})")
                 cm = chosen["cm"]
                 fig = go.Figure(data=go.Heatmap(
                     z=cm,
@@ -987,7 +998,7 @@ elif st.session_state.current_step == 3:
                 cr = classification_report(y_test, chosen["y_pred"], target_names=["Not Fraud", "Fraud"], output_dict=True)
                 st.dataframe(pd.DataFrame(cr).T, use_container_width=True)
             
-                st.subheader("🔍 Perbandingan Resampling (None, SMOTE, ENN)")
+                st.subheader("🔍 Perbandingan Pemodelan Menggunakan Extreme Learning Machine")
                 comp_df = pd.DataFrame([{
                     "Method": r["method"],
                     "Accuracy": r["accuracy"],
