@@ -12,7 +12,8 @@ from scipy.stats import chi2_contingency
 from sklearn.preprocessing import MinMaxScaler, LabelEncoder
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, confusion_matrix
-from sklearn.feature_selection import mutual_info_classif
+from imblearn.over_sampling import SMOTE
+from imblearn.under_sampling import EditedNearestNeighbours
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -94,7 +95,7 @@ if st.session_state.current_step == 1:
 
 #navigation button
 st.markdown("<br><br>", unsafe_allow_html=True)
-col1, col2, col3, col4, col5 = st.columns(5)
+col1, col2, col3, col4 = st.columns(4)
 with col1:
     if st.button("📤 Upload Data", key="nav1", use_container_width=True):
         st.session_state.current_step = 1
@@ -108,12 +109,8 @@ with col3:
         st.session_state.current_step = 3
         st.rerun()
 with col4:
-    if st.button("📈 Evaluasi", key="nav4", use_container_width=True):
+    if st.button("🔍 Interpretasi LIME", key="nav4", use_container_width=True):
         st.session_state.current_step = 4
-        st.rerun()
-with col5:
-    if st.button("🔍 Interpretasi LIME", key="nav5", use_container_width=True):
-        st.session_state.current_step = 5
         st.rerun()
 
 # ====== PARAMETER INISIALISASI KATEGORIK & NUMERIK ======
@@ -388,6 +385,29 @@ def encode_full_dataset(df):
     # Ensure all numeric
     df_encoded = df_encoded.apply(pd.to_numeric, errors='coerce').fillna(0)
     return df_encoded, label_encoders
+
+# Fungsi Aktivasi
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
+
+# Fungsi Training ELM
+def train_elm(X_train, y_train, hidden_neurons, activation=sigmoid, seed=42):
+    np.random.seed(seed)
+    input_dim = X_train.shape[1]
+    W = np.random.randn(input_dim, hidden_neurons)
+    b = np.random.randn(hidden_neurons)
+    H = activation(np.dot(X_train, W) + b)
+    H_pinv = np.linalg.pinv(H)
+    beta = np.dot(H_pinv, y_train)
+    return W, b, beta
+
+# Fungsi Prediksi ELM 
+def predict_elm(X_test, W, b, beta, activation=sigmoid):
+    H_test = activation(np.dot(X_test, W) + b)
+    y_pred_raw = np.dot(H_test, beta)
+    y_pred = (y_pred_raw >= 0.5).astype(int)
+    return y_pred
+    
 
 # ========== Halaman UI Dashboard ==========
 if st.session_state.current_step == 1:
@@ -878,11 +898,7 @@ elif st.session_state.current_step == 3:
             resampling_options = [
                 ("none", "None - Tanpa resampling"),
                 ("smote", "SMOTE"),
-                ("adasyn", "ADASYN"),
-                ("tomeklinks", "Tomek Links"),
-                ("enn", "ENN"),
-                ("smoteenn", "SMOTE+ENN"),
-                ("smotetomek", "SMOTE+Tomek Links")
+                ("enn", "ENN")
             ]
             
             selected_resampling = st.selectbox(
@@ -894,140 +910,110 @@ elif st.session_state.current_step == 3:
             st.session_state.selected_resampling = selected_resampling
     
             # ELM Parameters
-            st.subheader("🧠 Parameter ELM")
-            
-            col1, col2, col3 = st.columns(3)
-            
-            with col1:
-                activation_function = st.selectbox(
-                    "Fungsi Aktivasi:",
-                    ["sigmoid", "tanh", "relu"]
-                )
-            
-            with col2:
-                hidden_neurons = st.slider(
-                    "Jumlah Hidden Neuron:",
-                    min_value=50, max_value=500, value=100, step=10
-                )
-            
-            with col3:
-                learning_rate = st.slider(
-                    "Learning Rate:",
-                    min_value=0.01, max_value=1.0, value=0.1, step=0.01
-                )
-            
-            # Training configuration
-            st.subheader("🚀 Konfigurasi Training")
-            
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                st.write("**Training Setup**")
-                
-                features_used = st.session_state.get("selected_features_used", [])
-                scaled_features = st.session_state.get("numeric_cols_scaled", [])
-                
-                st.info(f"""
-                **Konfigurasi Final:**
-                - Training Shape: {st.session_state.X_train.shape}
-                - Testing Shape: {st.session_state.X_test.shape}
-                - Selected Features: {len(features_used)}
-                - Scaled Features: {len(scaled_features)}
-                - Resampling: {selected_resampling.upper()}
-                - Hidden Neurons: {hidden_neurons}
-                - Activation: {activation_function}
-                - Outlier Method: {st.session_state.get('outlier_method_used', 'IQR')}
-                """)
-            
-            with col2:
-                st.write("**Training Control**")
-                
-                if not st.session_state.get('model_trained', False):
-                    if st.button("🚀 Mulai Training ELM", type="primary"):
-                        # Simulate training process
-                        progress_bar = st.progress(0)
-                        status_text = st.empty()
-                        
-                        # Simulate training steps
-                        steps = [
-                            "Initializing ELM architecture...",
-                            "Applying resampling technique...",
-                            "Processing training data...", 
-                            "Computing output weights...",
-                            "Validating model performance...",
-                            "Finalizing model..."
-                        ]
-                        
-                        for i, step in enumerate(steps):
-                            status_text.text(step)
-                            progress_bar.progress((i + 1) / len(steps))
-                            time.sleep(1)
-                        
-                        # Generate realistic results
-                        accuracy = 0.92 + np.random.random() * 0.06
-                        precision = accuracy - 0.02 + np.random.random() * 0.03
-                        recall = accuracy - 0.04 + np.random.random() * 0.05
-                        f1 = 2 * (precision * recall) / (precision + recall)
-                        
-                        st.session_state.training_results = {
-                            'accuracy': accuracy,
-                            'precision': precision,
-                            'recall': recall,
-                            'f1': f1,
-                            'training_time': np.random.uniform(0.5, 2.0),
-                            'model_config': {
-                                'features_used': len(features_used),
-                                'resampling': selected_resampling,
-                                'activation': activation_function,
-                                'hidden_neurons': hidden_neurons
-                            }
-                        }
-                        st.session_state.model_trained = True
-                        
-                        status_text.success("✅ Training completed successfully!")
-                        st.rerun()
-                else:
-                    st.success("✅ Model sudah berhasil ditraining!")
-            
-            # Training results
-            if st.session_state.get('model_trained', False):
-                st.subheader("📊 Hasil Training")
-                
-                col1, col2, col3, col4 = st.columns(4)
-                
-                results = st.session_state.training_results
-                
+            if st.session_state.get('data_normalized', False):
+                st.subheader("🧠 Parameter ELM")
+                col1, col2 = st.columns(2)
                 with col1:
-                    st.metric("Accuracy", f"{results['accuracy']*100:.1f}%")
-                
+                    hidden_neurons = st.slider("Jumlah Hidden Neuron:", min_value=50, max_value=500, value=100, step=10)
                 with col2:
-                    st.metric("Precision", f"{results['precision']*100:.1f}%")
+                    activation_function = st.selectbox("Fungsi Aktivasi:", ["sigmoid"])  # untuk sekarang baru sigmoid
+            
+                if st.button("🚀 Mulai Training ELM", type="primary"):
+                    # Data split
+                    X = st.session_state.X
+                    y = st.session_state.y
+                    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42, stratify=y)
+            
+                    # Fungsi apply resampling
+                    def apply_resampling(method, X_train, y_train):
+                        if method == "smote":
+                            return SMOTE(random_state=42).fit_resample(X_train, y_train)
+                        elif method == "enn":
+                            return EditedNearestNeighbours().fit_resample(X_train, y_train)
+                        return X_train, y_train
+            
+                    # Jalankan training untuk semua metode resampling
+                    results_all = []
+                    for method in ["none", "smote", "enn"]:
+                        X_res, y_res = apply_resampling(method, X_train, y_train)
+            
+                        # Train & Predict ELM
+                        W, b, beta = train_elm(X_res, y_res, hidden_neurons)
+                        y_pred = predict_elm(X_test, W, b, beta)
+            
+                        # Metrics
+                        acc = accuracy_score(y_test, y_pred)
+                        prec = precision_score(y_test, y_pred, zero_division=0)
+                        rec = recall_score(y_test, y_pred, zero_division=0)
+                        f1 = f1_score(y_test, y_pred, zero_division=0)
+                        cm = confusion_matrix(y_test, y_pred)
+            
+                        results_all.append({
+                            "method": method,
+                            "accuracy": acc,
+                            "precision": prec,
+                            "recall": rec,
+                            "f1": f1,
+                            "cm": cm,
+                            "y_pred": y_pred
+                        })
+            
+                    st.session_state.training_results = results_all
+                    st.session_state.model_trained = True
+                    st.success("✅ Training selesai! Hasil evaluasi ditampilkan di bawah.")
+                    st.rerun()
+            
+            # Evaluasi Pemodelan
+            if st.session_state.get('model_trained', False):
+                results_all = st.session_state.training_results
+            
+                # tampilkan confusion matrix untuk metode terakhir yang dipilih
+                selected_method = "none"  # default tampilkan non-resampling
+                chosen = [r for r in results_all if r["method"] == selected_method][0]
+            
+                st.subheader("🔄 Confusion Matrix")
+                cm = chosen["cm"]
+                fig = go.Figure(data=go.Heatmap(
+                    z=cm,
+                    x=["Pred:0", "Pred:1"],
+                    y=["True:0", "True:1"],
+                    colorscale="Blues",
+                    text=cm,
+                    texttemplate="%{text}"
+                ))
+                st.plotly_chart(fig, use_container_width=True)
+            
+                st.subheader("📊 Classification Report")
+                cr = classification_report(y_test, chosen["y_pred"], target_names=["Not Fraud", "Fraud"], output_dict=True)
+                st.dataframe(pd.DataFrame(cr).T, use_container_width=True)
+            
+                st.subheader("🔍 Perbandingan Resampling (None, SMOTE, ENN)")
+                comp_df = pd.DataFrame([{
+                    "Method": r["method"],
+                    "Accuracy": r["accuracy"],
+                    "Precision": r["precision"],
+                    "Recall": r["recall"],
+                    "F1-Score": r["f1"]
+                } for r in results_all])
+                st.dataframe(comp_df.style.highlight_max(axis=0, subset=["Accuracy","Precision","Recall","F1-Score"]), use_container_width=True)
                 
-                with col3:
-                    st.metric("Recall", f"{results['recall']*100:.1f}%")
-                
-                with col4:
-                    st.metric("F1-Score", f"{results['f1']*100:.1f}%")
-                
-                st.info(f"⚡ Training Time: {results['training_time']:.1f} seconds")
-    
-    # Navigation buttons
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("⬅️ Kembali"):
-            st.session_state.current_step = 2
-            st.rerun()
-    with col2:
-        if st.session_state.get('model_trained', False) and st.button("➡️ Lanjut ke Evaluasi", type="primary"):
-            st.session_state.current_step = 4
-            st.rerun()
+                # Navigation buttons
+                col1, col2 = st.columns(2)
+                with col1:
+                    if st.button("⬅️ Kembali"):
+                        st.session_state.current_step = 2
+                        st.rerun()
+                with col2:
+                    if st.session_state.get('model_trained', False) and st.button("➡️ Lanjut ke Evaluasi", type="primary"):
+                        st.session_state.current_step = 4
+                        st.rerun()
         
 elif st.session_state.current_step == 4:
     # Step 4: Evaluation
-    st.header("📈 Evaluasi Hasil")
+    st.header("🔍 Interpretasi LIME")
     
     if not st.session_state.model_trained:
-        st.warning("⚠️ Silakan lakukan training model terlebih dahulu!")
+        st.warning("⚠️ Silakan lakukan pemodelan terlebih dahulu!")
         if st.button("⬅️ Kembali ke Analisis"):
             st.session_state.current_step = 3
             st.rerun()
@@ -1125,108 +1111,7 @@ elif st.session_state.current_step == 4:
         # Display comparison table with highlighting
         st.dataframe(comparison_df.style.highlight_max(axis=0, subset=['Accuracy', 'Precision', 'Recall', 'F1-Score']), use_container_width=True)
 
-        # Hyperparameter Tuning with Optuna - moved below main evaluation
-        st.subheader("🔧 Hyperparameter Tuning (Optuna)")
         
-        st.info("Setelah melihat performa baseline model, Anda dapat melakukan hyperparameter tuning untuk meningkatkan akurasi.")
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.write("**Tuning Configuration**")
-            n_trials = st.slider("Number of Trials:", 10, 100, 50)
-            tune_params = st.multiselect(
-                "Parameters to Tune:",
-                ["hidden_neurons", "learning_rate", "activation_function"],
-                default=["hidden_neurons", "learning_rate"]
-            )
-            
-            if st.button("🔍 Start Hyperparameter Tuning"):
-                progress_bar = st.progress(0)
-                status_text = st.empty()
-                
-                # Simulate Optuna tuning
-                best_params = {}
-                best_score = 0
-                
-                for i in range(n_trials):
-                    status_text.text(f"Trial {i+1}/{n_trials}: Testing parameters...")
-                    progress_bar.progress((i+1)/n_trials)
-                    
-                    # Simulate parameter testing
-                    if i == n_trials - 1:  # Last trial - best result
-                        best_score = results['accuracy'] + 0.02 + np.random.random() * 0.03
-                        if "hidden_neurons" in tune_params:
-                            best_params["hidden_neurons"] = np.random.randint(80, 200)
-                        if "learning_rate" in tune_params:
-                            best_params["learning_rate"] = np.random.uniform(0.05, 0.3)
-                        if "activation_function" in tune_params:
-                            best_params["activation_function"] = np.random.choice(["sigmoid", "tanh", "relu"])
-                    
-                    time.sleep(0.1)
-                
-                st.session_state.best_params = best_params
-                st.session_state.best_score = best_score
-                st.session_state.tuning_completed = True
-                status_text.success("✅ Hyperparameter tuning completed!")
-        
-        with col2:
-            if hasattr(st.session_state, 'best_params'):
-                st.write("**Best Parameters Found**")
-                st.json(st.session_state.best_params)
-                st.success(f"🎯 Best Score: {st.session_state.best_score:.3f}")
-                
-                if st.button("Apply Best Parameters"):
-                    # Store original results for comparison
-                    st.session_state.original_results = st.session_state.training_results.copy()
-                    
-                    # Update with tuned results
-                    st.session_state.training_results.update({
-                        'accuracy': st.session_state.best_score,
-                        'precision': st.session_state.best_score - 0.005,
-                        'recall': st.session_state.best_score - 0.01,
-                        'f1': st.session_state.best_score - 0.0075,
-                        'is_tuned': True
-                    })
-                    st.success("✅ Best parameters applied!")
-                    st.rerun()
-        
-        # Performance comparison after tuning
-        if hasattr(st.session_state, 'tuning_completed') and hasattr(st.session_state, 'original_results'):
-            st.subheader("📈 Perbandingan Sebelum vs Sesudah Hyperparameter Tuning")
-            
-            original = st.session_state.original_results
-            tuned = st.session_state.training_results
-            
-            comparison_data = {
-                'Metric': ['Accuracy', 'Precision', 'Recall', 'F1-Score'],
-                'Before Tuning': [original['accuracy'], original['precision'], original['recall'], original['f1']],
-                'After Tuning': [tuned['accuracy'], tuned['precision'], tuned['recall'], tuned['f1']]
-            }
-            
-            comparison_df = pd.DataFrame(comparison_data)
-            comparison_df['Improvement'] = comparison_df['After Tuning'] - comparison_df['Before Tuning']
-            
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                fig = go.Figure()
-                fig.add_trace(go.Bar(name='Before Tuning', x=comparison_df['Metric'], y=comparison_df['Before Tuning']))
-                fig.add_trace(go.Bar(name='After Tuning', x=comparison_df['Metric'], y=comparison_df['After Tuning']))
-                fig.update_layout(title='Performance Comparison: Before vs After Tuning', barmode='group')
-                st.plotly_chart(fig, use_container_width=True)
-            
-            with col2:
-                st.write("**Improvement Summary**")
-                for _, row in comparison_df.iterrows():
-                    improvement = row['Improvement'] * 100
-                    if improvement > 0:
-                        st.success(f"**{row['Metric']}**: +{improvement:.2f}%")
-                    else:
-                        st.error(f"**{row['Metric']}**: {improvement:.2f}%")
-                
-                avg_improvement = comparison_df['Improvement'].mean() * 100
-                st.info(f"**Average Improvement**: {avg_improvement:.2f}%")
         
         # Navigation
         col1, col2 = st.columns(2)
@@ -1239,70 +1124,6 @@ elif st.session_state.current_step == 4:
                 st.session_state.current_step = 5
                 st.rerun()
         
-        with col1:
-            st.write("**Tuning Configuration**")
-            n_trials = st.slider("Number of Trials:", 10, 100, 50)
-            tune_params = st.multiselect(
-                "Parameters to Tune:",
-                ["hidden_neurons", "learning_rate", "activation_function"],
-                default=["hidden_neurons", "learning_rate"]
-            )
-            
-            if st.button("🔍 Start Hyperparameter Tuning"):
-                progress_bar = st.progress(0)
-                status_text = st.empty()
-                
-                # Simulate Optuna tuning
-                best_params = {}
-                best_score = 0
-                
-                for i in range(n_trials):
-                    status_text.text(f"Trial {i+1}/{n_trials}: Testing parameters...")
-                    progress_bar.progress((i+1)/n_trials)
-                    
-                    # Simulate parameter testing
-                    if i == n_trials - 1:  # Last trial - best result
-                        best_score = 0.96 + np.random.random() * 0.03
-                        if "hidden_neurons" in tune_params:
-                            best_params["hidden_neurons"] = np.random.randint(80, 150)
-                        if "learning_rate" in tune_params:
-                            best_params["learning_rate"] = np.random.uniform(0.05, 0.2)
-                        if "activation_function" in tune_params:
-                            best_params["activation_function"] = np.random.choice(["sigmoid", "tanh", "relu"])
-                    
-                    time.sleep(0.1)
-                
-                st.session_state.best_params = best_params
-                st.session_state.best_score = best_score
-                status_text.success("✅ Hyperparameter tuning completed!")
-        
-        with col2:
-            if hasattr(st.session_state, 'best_params'):
-                st.write("**Best Parameters Found**")
-                st.json(st.session_state.best_params)
-                st.success(f"🎯 Best Score: {st.session_state.best_score:.3f}")
-                
-                if st.button("Apply Best Parameters"):
-                    st.session_state.training_results.update({
-                        'accuracy': st.session_state.best_score,
-                        'precision': st.session_state.best_score - 0.01,
-                        'recall': st.session_state.best_score - 0.02,
-                        'f1': st.session_state.best_score - 0.015
-                    })
-                    st.success("✅ Best parameters applied!")
-                    st.rerun()
-        
-        # Navigation
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button("⬅️ Kembali"):
-                st.session_state.current_step = 3
-                st.rerun()
-        with col2:
-            if st.button("➡️ Lanjut ke Interpretasi LIME", type="primary"):
-                st.session_state.current_step = 5
-                st.rerun()
-
 elif st.session_state.current_step == 5:
     # Step 5: LIME Interpretation
     st.header("🔍 Interpretasi LIME")
