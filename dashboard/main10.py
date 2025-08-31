@@ -1044,8 +1044,8 @@ elif st.session_state.current_step == 3:
                     } for r in all_results])
         
                     st.subheader("🔍 Perbandingan Semua Metode")
+                    cm_summary = []
                     for r in all_results:
-                        st.write(f"**Confusion Matrix - {r['method']}**")
                         cm = r["cm"].ravel()  # urutannya [TN, FP, FN, TP]
                         tn, fp, fn, tp = cm
                         cm_summary.append({
