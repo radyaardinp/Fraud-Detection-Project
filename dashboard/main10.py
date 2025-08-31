@@ -1032,7 +1032,10 @@ elif st.session_state.current_step == 3:
                             "recall": rec,
                             "f1": f1,
                             "cm": cm,
-                            "y_pred": y_pred
+                            "y_pred": y_pred,
+                            "W": W,
+                            "b": b,
+                            "beta": beta
                         })
         
                     comp_df = pd.DataFrame([{
