@@ -1242,100 +1242,86 @@ elif st.session_state.current_step == 4:
     
                     # Kontribusi fitur (tabel)
                     lime_list = exp.as_list()
-                    lime_df = pd.DataFrame(lime_list, columns=["Fitur", "Kontribusi"])
-                    
-                    # Sort by absolute contribution for better visualization
-                    lime_df['abs_kontribusi'] = abs(lime_df['Kontribusi'])
-                    lime_df = lime_df.sort_values('abs_kontribusi', ascending=True)
-                    
-                    st.subheader("📊 Kontribusi Fitur terhadap Prediksi")
-                    
-                    # Enhanced dataframe display
-                    styled_df = lime_df[['Fitur', 'Kontribusi']].copy()
-                    styled_df['Kontribusi'] = styled_df['Kontribusi'].round(4)
-                    st.dataframe(styled_df, use_container_width=True)
-    
-                    # Enhanced visualization with better colors and formatting
-                    colors = ['#e74c3c' if c > 0 else '#27ae60' for c in lime_df["Kontribusi"]]
-                    
-                    fig = go.Figure(go.Bar(
-                        x=lime_df["Kontribusi"],
-                        y=lime_df["Fitur"],
-                        orientation="h",
-                        marker_color=colors,
-                        text=[f"{c:+.4f}" for c in lime_df["Kontribusi"]],
-                        textposition="auto",
-                        hovertemplate="<b>%{y}</b><br>" +
-                                    "Kontribusi: %{x:.4f}<br>" +
-                                    "<extra></extra>"
-                    ))
-                    
-                    fig.update_layout(
-                        title={
-                            'text': "LIME Feature Contributions",
-                            'x': 0.5,
-                            'xanchor': 'center'
-                        },
-                        xaxis_title="Kontribusi terhadap Prediksi Fraud",
-                        yaxis_title="Fitur",
-                        height=max(400, len(lime_df) * 30),  # Dynamic height
-                        template="plotly_white",
-                        showlegend=False
-                    )
-                    
-                    # Add vertical line at x=0
-                    fig.add_vline(x=0, line_dash="dash", line_color="gray", opacity=0.5)
-                    
-                    st.plotly_chart(fig, use_container_width=True)
-                    
-                    # Interpretation guide
-                    st.subheader("📖 Panduan Interpretasi")
+                    features = [f for f, _ in lime_list]
+                    contributions = [c for _, c in lime_list]
+                    colors = ['red' if c > 0 else 'green' for c in contributions]
+        
+                    # === Tampilan mirip contohmu ===
+                    st.subheader("🧠 Hasil Interpretasi LIME")
+        
                     col1, col2 = st.columns(2)
-                    
+        
+                    # Grafik kontribusi
                     with col1:
-                        st.markdown("""
-                        **🔴 Kontribusi Positif (Merah)**
-                        - Mendorong prediksi ke arah **Fraud**
-                        - Semakin besar nilai, semakin kuat indikasi fraud
-                        """)
-                    
+                        st.write("**📊 Kontribusi Features terhadap Prediksi**")
+                        fig = go.Figure(go.Bar(
+                            x=contributions,
+                            y=features,
+                            orientation='h',
+                            marker_color=colors,
+                            text=[f'{c:+.2f}' for c in contributions],
+                            textposition='auto'
+                        ))
+                        fig.update_layout(
+                            title="LIME Feature Contributions",
+                            xaxis_title="Contribution to Fraud Prediction",
+                            height=max(400, len(features) * 30)
+                        )
+                        st.plotly_chart(fig, use_container_width=True)
+        
+                    # Detail per fitur
                     with col2:
-                        st.markdown("""
-                        **🟢 Kontribusi Negatif (Hijau)**
-                        - Mendorong prediksi ke arah **Not Fraud**
-                        - Semakin kecil (negatif), semakin kuat indikasi legitimate
+                        st.write("**🔍 Feature Analysis Detail**")
+                        for feature, contrib in lime_list:
+                            if contrib > 0:
+                                st.error(f"**{feature}** ({contrib:+.2f}): Meningkatkan indikasi fraud")
+                            else:
+                                st.success(f"**{feature}** ({contrib:+.2f}): Mengurangi indikasi fraud")
+        
+                    # Ringkasan interpretasi
+                    st.subheader("📝 Ringkasan Interpretasi")
+                    confidence = proba * 100
+                    if predicted_class == "Fraud":
+                        st.info(f"""
+                        Model mengklasifikasikan transaksi ini sebagai **FRAUD** dengan confidence **{confidence:.1f}%**.  
+        
+                        **Faktor Pendorong (risiko):**
+                        - {', '.join([f for f,c in lime_list if c > 0])}
+        
+                        **Faktor Penahan:**
+                        - {', '.join([f for f,c in lime_list if c < 0])}
                         """)
+                    else:
+                        st.info(f"""
+                        Model mengklasifikasikan transaksi ini sebagai **NOT FRAUD** dengan confidence **{confidence:.1f}%**.  
+        
+                        **Faktor Legitimate:**
+                        - {', '.join([f for f,c in lime_list if c < 0])}
+        
+                        **Faktor Risiko (lemah):**
+                        - {', '.join([f for f,c in lime_list if c > 0])}
+                        """)
+        
+                except Exception as e:
+                    st.error(f"Terjadi kesalahan saat menjalankan LIME: {str(e)}")
                     
-                    # Summary insights
-                    positive_features = lime_df[lime_df['Kontribusi'] > 0]['Fitur'].tolist()
-                    negative_features = lime_df[lime_df['Kontribusi'] < 0]['Fitur'].tolist()
-                    
-                    if positive_features or negative_features:
-                        st.subheader("💡 Insight Utama")
-                        if positive_features:
-                            st.write(f"**Fitur yang mendukung prediksi Fraud:** {', '.join(positive_features[:3])}")
-                        if negative_features:
-                            st.write(f"**Fitur yang mendukung prediksi Not Fraud:** {', '.join(negative_features[:3])}")
-                    
+    # Navigation and Reset
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        if st.button("⬅️ Kembali"):
+            st.session_state.current_step = 3
+            st.rerun()
         
-        # Navigation and Reset
-        col1, col2, col3 = st.columns(3)
+    with col2:
+        if st.button("🔄 Reset Dashboard", type="secondary"):
+            # Reset all session state
+            for key in list(st.session_state.keys()):
+                del st.session_state[key]
+            st.session_state.current_step = 1
+            st.rerun()
         
-        with col1:
-            if st.button("⬅️ Kembali"):
-                st.session_state.current_step = 4
-                st.rerun()
-        
-        with col2:
-            if st.button("🔄 Reset Dashboard", type="secondary"):
-                # Reset all session state
-                for key in list(st.session_state.keys()):
-                    del st.session_state[key]
-                st.session_state.current_step = 1
-                st.rerun()
-        
-        with col3:
-            st.write("")  # Placeholder for alignment
+    with col3:
+        st.write("")  # Placeholder for alignment
 
 # Footer
 st.markdown("---")
