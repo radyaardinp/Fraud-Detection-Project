@@ -1281,26 +1281,43 @@ elif st.session_state.current_step == 4:
                     # Ringkasan interpretasi
                     st.subheader("📝 Ringkasan Interpretasi")
                     confidence = proba * 100
+                    
                     if predicted_class == "Fraud":
-                        st.info(f"""
-                        Model mengklasifikasikan transaksi ini sebagai **FRAUD** dengan confidence **{confidence:.1f}%**.  
-        
-                        **Faktor Pendorong (risiko):**
-                        - {', '.join([f for f,c in lime_list if c > 0])}
-        
-                        **Faktor Penahan:**
-                        - {', '.join([f for f,c in lime_list if c < 0])}
-                        """)
+                        positive_features = [f for f,c in lime_list if c > 0]
+                        negative_features = [f for f,c in lime_list if c < 0]
+                    
+                        narasi = f"""
+                        🚨 **Prediksi: FRAUD**  
+                        Model memperkirakan transaksi ini **berisiko fraud** dengan tingkat keyakinan **{confidence:.1f}%**.  
+                    
+                        - Faktor utama yang **mendorong transaksi dianggap fraud** adalah:  
+                          👉 {', '.join(positive_features) if positive_features else 'Tidak ada faktor dominan'}  
+                    
+                        - Namun, ada beberapa faktor yang justru **menahan agar transaksi tidak terlalu mencurigakan**, yaitu:  
+                          👉 {', '.join(negative_features) if negative_features else 'Tidak ada faktor penahan'}  
+                    
+                        📌 Artinya, meskipun ada tanda-tanda mencurigakan, masih terdapat elemen dalam transaksi yang mirip dengan transaksi normal.
+                        """
+                        st.warning(narasi)
+                    
                     else:
-                        st.info(f"""
-                        Model mengklasifikasikan transaksi ini sebagai **NOT FRAUD** dengan confidence **{confidence:.1f}%**.  
-        
-                        **Faktor Legitimate:**
-                        - {', '.join([f for f,c in lime_list if c < 0])}
-        
-                        **Faktor Risiko (lemah):**
-                        - {', '.join([f for f,c in lime_list if c > 0])}
-                        """)
+                        positive_features = [f for f,c in lime_list if c > 0]
+                        negative_features = [f for f,c in lime_list if c < 0]
+                    
+                        narasi = f"""
+                        ✅ **Prediksi: NOT FRAUD**  
+                        Model memperkirakan transaksi ini **aman/legit** dengan tingkat keyakinan **{confidence:.1f}%**.  
+                    
+                        - Faktor yang **menguatkan status aman** transaksi ini:  
+                          👉 {', '.join(negative_features) if negative_features else 'Tidak ada faktor dominan'}  
+                    
+                        - Namun, ada sedikit faktor risiko yang **perlu diperhatikan**:  
+                          👉 {', '.join(positive_features) if positive_features else 'Tidak ada faktor risiko'}  
+                    
+                        📌 Artinya, secara keseluruhan transaksi ini lebih menyerupai pola transaksi normal, meskipun masih ada beberapa sinyal kecil yang patut diwaspadai.
+                        """
+                        st.success(narasi)
+
         
                 except Exception as e:
                     st.error(f"Terjadi kesalahan saat menjalankan LIME: {str(e)}")
