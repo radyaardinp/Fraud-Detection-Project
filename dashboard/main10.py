@@ -920,7 +920,7 @@ elif st.session_state.current_step == 3:
                 if method == "SMOTE":
                     return SMOTE(random_state=42).fit_resample(X, y)
                 elif method == "ENN":        
-                    return EditedNearestNeighbours().fit_resample(X, y)
+                    return EditedNearestNeighbours(random_state=42).fit_resample(X, y)
                 return X, y
     
             # ELM Parameters
@@ -946,6 +946,7 @@ elif st.session_state.current_step == 3:
                     act_func = activation_functions[activation_function]
             
                     # Train & Predict ELM
+                    np.random.seed(42)
                     W, b, beta = train_elm(X_res, y_res, hidden_neurons, activation=act_func)
                     y_pred = predict_elm(X_test, W, b, beta, activation=act_func)
             
@@ -1008,6 +1009,7 @@ elif st.session_state.current_step == 3:
                     all_results = []
                     for method in ["Tanpa Resampling", "SMOTE", "ENN"]:
                         X_res, y_res = apply_resampling(method, X_train, y_train)
+                        np.random.seed(42)
                         W, b, beta = train_elm(X_res, y_res, hidden_neurons, activation=act_func)
                         y_pred = predict_elm(X_test, W, b, beta, activation=act_func)
         
