@@ -1042,6 +1042,7 @@ elif st.session_state.current_step == 3:
                     
                     # Cari metode dengan score terbaik
                     best_idx = comp_df["balance_score"].idxmax()
+                    best_row = comp_df.loc[best_idx]
                     
                     # Buat style: highlight cuma precision, recall, dan f1 di baris terbaik
                     def highlight_best(row):
