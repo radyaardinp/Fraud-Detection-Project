@@ -1038,18 +1038,24 @@ elif st.session_state.current_step == 3:
                     } for r in all_results])
         
                     st.subheader("🔍 Perbandingan Semua Metode")
+                    
+                    cm_summary = []
                     for r in all_results:
                         st.write(f"**Confusion Matrix - {r['method']}**")
-                        cm = confusion_matrix(y_test, y_pred)
-                        cm_df = pd.DataFrame(
-                            cm,
-                            index=["Actual Negative", "Actual Positive"],
-                            columns=["Predicted Negative", "Predicted Positive"]
-                        )
-                        
-                        # tampilkan tabel di Streamlit
-                        st.subheader("📊 Confusion Matrix (Tabel)")
-                        st.dataframe(cm_df) 
+                        cm = r["cm"].ravel()  # urutannya [TN, FP, FN, TP]
+                        tn, fp, fn, tp = cm
+                        cm_summary.append({
+                            "Percobaan": r["method"],
+                            "True Negative (TN)": tn,
+                            "False Positive (FP)": fp,
+                            "False Negative (FN)": fn,
+                            "True Positive (TP)": tp
+                        })
+                    
+                    cm_df = pd.DataFrame(cm_summary)
+                    
+                    st.subheader("📊 Ringkasan Confusion Matrices ELM + Resampling")
+                    st.dataframe(cm_df, use_container_width=True)
                     
                     # Hitung selisih precision & recall
                     comp_df["diff"] = abs(comp_df["Precision"] - comp_df["Recall"])
