@@ -1195,8 +1195,7 @@ elif st.session_state.current_step == 4:
             )
         
         # Tampilkan data transaksi yang dipilih
-        idx = st.number_input("Pilih indeks transaksi uji:", min_value=0, max_value=len(X_test)-1, value=0, step=1)
-        x = X_test.iloc[idx].valuess
+        x = X_test.iloc[idx].values
         print(x.shape, len(feature_names))
         
         with st.expander("📋 Data Transaksi yang Dipilih"):
