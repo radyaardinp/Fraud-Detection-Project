@@ -14,6 +14,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, classification_report, confusion_matrix
 from imblearn.over_sampling import SMOTE
 from imblearn.under_sampling import EditedNearestNeighbours
+import lime
+from lime.lime_tabular import LimeTabularExplainer
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -1038,8 +1040,6 @@ elif st.session_state.current_step == 3:
                     } for r in all_results])
         
                     st.subheader("🔍 Perbandingan Semua Metode")
-                    
-                    cm_summary = []
                     for r in all_results:
                         st.write(f"**Confusion Matrix - {r['method']}**")
                         cm = r["cm"].ravel()  # urutannya [TN, FP, FN, TP]
@@ -1101,125 +1101,9 @@ elif st.session_state.current_step == 4:
     st.header("🔍 Interpretasi LIME")
     
     if not st.session_state.model_trained:
-        st.warning("⚠️ Silakan lakukan pemodelan terlebih dahulu!")
-        if st.button("⬅️ Kembali ke Analisis"):
-            st.session_state.current_step = 3
-            st.rerun()
-    else:
-        results = st.session_state.training_results
-        results = st.session_state.training_results
-        
-        # Confusion Matrix
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.subheader("🔄 Confusion Matrix")
-            # Generate synthetic confusion matrix based on results
-            total_samples = 2800
-            tp = int(total_samples * 0.07 * results['recall'])  # True positives
-            fp = int(tp / results['precision'] - tp)  # False positives
-            fn = int(total_samples * 0.07 - tp)  # False negatives
-            tn = total_samples - tp - fp - fn  # True negatives
-            
-            cm = np.array([[tn, fp], [fn, tp]])
-            
-            fig = create_confusion_matrix_plot(cm)
-            st.plotly_chart(fig, use_container_width=True)
-            
-            # Display metrics
-            st.write("**Confusion Matrix Values:**")
-            st.write(f"- True Negative: {tn:,}")
-            st.write(f"- False Positive: {fp:,}")
-            st.write(f"- False Negative: {fn:,}")
-            st.write(f"- True Positive: {tp:,}")
-        
-        with col2:
-            st.subheader("📊 Performance by Class")
-            
-            # Class-wise performance
-            performance_data = {
-                'Class': ['Not Fraud', 'Fraud'],
-                'Precision': [results['precision'] + 0.02, results['precision'] - 0.02],
-                'Recall': [results['recall'] + 0.01, results['recall'] - 0.01],
-                'F1-Score': [results['f1'] + 0.015, results['f1'] - 0.015]
-            }
-            
-            df_perf = pd.DataFrame(performance_data)
-            
-            fig = go.Figure()
-            fig.add_trace(go.Bar(name='Precision', x=df_perf['Class'], y=df_perf['Precision']))
-            fig.add_trace(go.Bar(name='Recall', x=df_perf['Class'], y=df_perf['Recall']))
-            fig.add_trace(go.Bar(name='F1-Score', x=df_perf['Class'], y=df_perf['F1-Score']))
-            
-            fig.update_layout(
-                title='Performance by Class',
-                xaxis_title='Class',
-                yaxis_title='Score',
-                barmode='group',
-                height=400
-            )
-            st.plotly_chart(fig, use_container_width=True)
-        
-        # Resampling Method Comparison
-        st.subheader("🔍 Perbandingan Metode Resampling")
-        
-        # Generate comparison data for different resampling methods
-        resampling_comparison = {
-            'Method': ['SMOTE', 'ADASYN', 'ENN', 'Tomek Links', 'SMOTE+ENN', 'No Resampling'],
-            'Accuracy': [0.941, 0.938, 0.925, 0.918, 0.945, 0.912],
-            'Precision': [0.923, 0.921, 0.908, 0.901, 0.927, 0.895],
-            'Recall': [0.887, 0.884, 0.871, 0.863, 0.891, 0.856],
-            'F1-Score': [0.904, 0.902, 0.889, 0.881, 0.908, 0.875],
-            'Training Time (s)': [2.3, 2.8, 1.9, 1.5, 3.1, 0.8]
-        }
-        
-        # Highlight current method
-        current_method = st.session_state.selected_resampling.upper()
-        method_mapping = {
-            'SMOTE': 'SMOTE',
-            'ADASYN': 'ADASYN', 
-            'ENN': 'ENN',
-            'TOMEKLINKS': 'Tomek Links',
-            'SMOTEENN': 'SMOTE+ENN',
-            'NONE': 'No Resampling'
-        }
-        
-        comparison_df = pd.DataFrame(resampling_comparison)
-        
-        # Update current method results
-        if current_method in method_mapping:
-            current_method_name = method_mapping[current_method]
-            mask = comparison_df['Method'] == current_method_name
-            comparison_df.loc[mask, 'Accuracy'] = results['accuracy']
-            comparison_df.loc[mask, 'Precision'] = results['precision']
-            comparison_df.loc[mask, 'Recall'] = results['recall']
-            comparison_df.loc[mask, 'F1-Score'] = results['f1']
-            comparison_df.loc[mask, 'Training Time (s)'] = results['training_time']
-        
-        # Display comparison table with highlighting
-        st.dataframe(comparison_df.style.highlight_max(axis=0, subset=['Accuracy', 'Precision', 'Recall', 'F1-Score']), use_container_width=True)
-
-        
-        
-        # Navigation
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button("⬅️ Kembali"):
-                st.session_state.current_step = 3
-                st.rerun()
-        with col2:
-            if st.button("➡️ Lanjut ke Interpretasi LIME", type="primary"):
-                st.session_state.current_step = 5
-                st.rerun()
-        
-elif st.session_state.current_step == 5:
-    # Step 5: LIME Interpretation
-    st.header("🔍 Interpretasi LIME")
-    
-    if not st.session_state.model_trained:
         st.warning("⚠️ Silakan lakukan training model terlebih dahulu!")
-        if st.button("⬅️ Kembali ke Evaluasi"):
-            st.session_state.current_step = 4
+        if st.button("⬅️ Kembali ke Pemodelan"):
+            st.session_state.current_step = 3
             st.rerun()
     else:
         # LIME Introduction
