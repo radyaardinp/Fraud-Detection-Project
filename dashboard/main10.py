@@ -1049,7 +1049,7 @@ elif st.session_state.current_step == 3:
                             text=cm,
                             texttemplate="%{text}"
                         ))
-                        st.plotly_chart(fig, use_container_width=True,  key=f"cm_{r['method']})
+                        st.plotly_chart(fig, use_container_width=True,  key=f"cm_{r['method']}")
                     
                     # Hitung selisih precision & recall
                     comp_df["diff"] = abs(comp_df["Precision"] - comp_df["Recall"])
