@@ -943,7 +943,7 @@ elif st.session_state.current_step == 3:
                     # Jalankan training untuk semua metode resampling
                     results_all = []
                     X_res, y_res = apply_resampling(selected_resampling, X_train, y_train)
-                    act_func = activation_functions[activation_functions]
+                    act_func = activation_functions[activation_function]
             
                     # Train & Predict ELM
                     W, b, beta = train_elm(X_res, y_res, hidden_neurons, activation=act_func)
