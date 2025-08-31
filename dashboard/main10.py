@@ -1040,16 +1040,16 @@ elif st.session_state.current_step == 3:
                     st.subheader("🔍 Perbandingan Semua Metode")
                     for r in all_results:
                         st.write(f"**Confusion Matrix - {r['method']}**")
-                        cm = r["cm"]
-                        fig = go.Figure(data=go.Heatmap(
-                            z=cm,
-                            x=["Pred:0", "Pred:1"],
-                            y=["True:0", "True:1"],
-                            colorscale="Blues",
-                            text=cm,
-                            texttemplate="%{text}"
-                        ))
-                        st.plotly_chart(fig, use_container_width=True,  key=f"cm_{r['method']}")
+                        cm = confusion_matrix(y_test, y_pred)
+                        cm_df = pd.DataFrame(
+                            cm,
+                            index=["Actual Negative", "Actual Positive"],
+                            columns=["Predicted Negative", "Predicted Positive"]
+                        )
+                        
+                        # tampilkan tabel di Streamlit
+                        st.subheader("📊 Confusion Matrix (Tabel)")
+                        st.dataframe(cm_df) 
                     
                     # Hitung selisih precision & recall
                     comp_df["diff"] = abs(comp_df["Precision"] - comp_df["Recall"])
