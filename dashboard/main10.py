@@ -1133,19 +1133,30 @@ elif st.session_state.current_step == 4:
         """)
         
         # Ambil data & model
-        X_train = st.session_state.X_train.values
-        X_test = st.session_state.X_test.values
+        X_train = st.session_state.X_train
+        X_test = st.session_state.X_test
         y_test = st.session_state.y_test
-        params = st.session_state.best_model
+        params = st.session_state.get("best_model", st.session_state.get("elm_params", None))
+        if params is None:
+            st.error("⚠️ Model belum tersedia. Silakan lakukan training atau bandingkan metode terlebih dahulu!")
+            st.stop()
     
         W, b, beta = params["W"], params["b"], params["beta"]
         act_func = params["activation"]
         feature_names = params["feature_names"]
     
         # Definisi fungsi prediksi probabilitas (fixed function name)
-        def predict_proba(batch):
-            return predict_proba_elm(batch, W, b, beta, activation=act_func)
-    
+        def predict_proba_elm(X, W, b, beta, activation):
+            """
+            Menghitung probabilitas kelas (Not Fraud, Fraud) dari model ELM.
+            Output: array shape (n_samples, 2)
+            """
+            H = activation(np.dot(X, W) + b)
+            y_scores = H.dot(beta)
+            # Ubah ke probabilitas dengan sigmoid
+            probs = 1 / (1 + np.exp(-y_scores))
+            return np.column_stack([1 - probs, probs])
+
         # Buat explainer LIME dengan error handling
         try:
             explainer = LimeTabularExplainer(
@@ -1175,7 +1186,8 @@ elif st.session_state.current_step == 4:
         
         with col2:
             # Informasi target aktual
-            actual_label = y_test.iloc[idx] if hasattr(y_test, 'iloc') else y_test[idx]
+            y_test =  np.array(st.session_state.y_test)
+            actual_label = y_test[idx]
             st.metric(
                 "Label Aktual", 
                 "Fraud" if actual_label == 1 else "Not Fraud",
@@ -1183,7 +1195,7 @@ elif st.session_state.current_step == 4:
             )
         
         # Tampilkan data transaksi yang dipilih
-        x = X_test[idx]
+        x = X_test.loc[idx].values
         
         with st.expander("📋 Data Transaksi yang Dipilih"):
             transaction_df = pd.DataFrame({
