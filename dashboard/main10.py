@@ -1039,17 +1039,17 @@ elif st.session_state.current_step == 3:
         
                     st.subheader("🔍 Perbandingan Semua Metode")
                     for r in all_results:
-                    st.write(f"**Confusion Matrix - {r['method']}**")
-                    cm = r["cm"]
-                    fig = go.Figure(data=go.Heatmap(
-                        z=cm,
-                        x=["Pred:0", "Pred:1"],
-                        y=["True:0", "True:1"],
-                        colorscale="Blues",
-                        text=cm,
-                        texttemplate="%{text}"
-                    ))
-                    st.plotly_chart(fig, use_container_width=True)
+                        st.write(f"**Confusion Matrix - {r['method']}**")
+                        cm = r["cm"]
+                        fig = go.Figure(data=go.Heatmap(
+                            z=cm,
+                            x=["Pred:0", "Pred:1"],
+                            y=["True:0", "True:1"],
+                            colorscale="Blues",
+                            text=cm,
+                            texttemplate="%{text}"
+                        ))
+                        st.plotly_chart(fig, use_container_width=True)
                     
                     # Hitung selisih precision & recall
                     comp_df["diff"] = abs(comp_df["Precision"] - comp_df["Recall"])
