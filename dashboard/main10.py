@@ -1115,138 +1115,71 @@ elif st.session_state.current_step == 4:
         mengapa model menganggap suatu transaksi sebagai fraud atau tidak.
         """)
         
-        # Instance Selection
-        st.subheader("🎯 Pilih Transaksi untuk Dijelaskan")
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            instance_filter = st.selectbox(
-                "Filter Transaksi:",
-                ["all", "fraud", "normal", "misclassified"],
-                format_func=lambda x: {
-                    "all": "Semua Transaksi",
-                    "fraud": "Hanya Fraud", 
-                    "normal": "Hanya Normal",
-                    "misclassified": "Salah Klasifikasi"
-                }[x]
+        # ambil data & model
+        X_train = st.session_state.X_train.values
+        X_test = st.session_state.X_test.values
+        y_test = st.session_state.y_test
+        params = st.session_state.elm_params
+    
+        W, b, beta = params["W"], params["b"], params["beta"]
+        act_func = params["activation"]
+        feature_names = params["feature_names"]
+    
+        # definisi fungsi prediksi probabilitas
+        def _predict_proba(batch):
+            return predict_proba_elm(batch, W, b, beta, activation=act_func)
+    
+        # buat explainer LIME
+        explainer = LimeTabularExplainer(
+            training_data=X_train,
+            feature_names=feature_names,
+            class_names=["Not Fraud", "Fraud"],
+            discretize_continuous=True,
+            mode="classification"
+        )
+    
+        # pilih transaksi dari test set
+        idx = st.number_input(
+            "Pilih indeks transaksi uji:",
+            min_value=0, max_value=len(X_test)-1, value=0, step=1
+        )
+        x = X_test[idx]
+    
+        if st.button("🧠 Generate LIME Explanation", type="primary"):
+            exp = explainer.explain_instance(
+                data_row=x,
+                predict_fn=_predict_proba,
+                num_features=min(10, len(feature_names))
             )
-        
-        with col2:
-            sample_transactions = [
-                "Transaksi #1 - Predicted: Fraud, Actual: Fraud",
-                "Transaksi #2 - Predicted: Normal, Actual: Normal", 
-                "Transaksi #3 - Predicted: Fraud, Actual: Normal",
-                "Transaksi #4 - Predicted: Normal, Actual: Fraud"
-            ]
-            
-            selected_transaction = st.selectbox(
-                "Pilih Instance:"
+    
+            # Probabilitas model
+            proba = _predict_proba(x.reshape(1, -1))[0, 1]
+            st.write(f"**Probabilitas Fraud:** {proba:.4f}  |  **Prediksi:** {'Fraud' if proba >= 0.5 else 'Not Fraud'}")
+    
+            # Kontribusi fitur (tabel)
+            lime_df = pd.DataFrame(exp.as_list(), columns=["Fitur", "Kontribusi"])
+            st.subheader("📊 Kontribusi Fitur terhadap Prediksi")
+            st.dataframe(lime_df, use_container_width=True)
+    
+            # Visual bar
+            fig = go.Figure(go.Bar(
+                x=lime_df["Kontribusi"],
+                y=lime_df["Fitur"],
+                orientation="h",
+                marker_color=["red" if c > 0 else "green" for c in lime_df["Kontribusi"]],
+                text=[f"{c:+.2f}" for c in lime_df["Kontribusi"]],
+                textposition="auto"
+            ))
+            fig.update_layout(
+                title="LIME Feature Contributions",
+                xaxis_title="Kontribusi terhadap Prediksi Fraud",
+                height=400
             )
-        
-        if selected_transaction:
-            # Transaction details
-            st.subheader("📋 Detail Transaksi Terpilih")
-            
-            # Get transaction key from selection
-            trans_key = selected_transaction.split(" - ")[0]
-            trans_info = transaction_data.get(trans_key, transaction_data["Transaksi #1"])
-            
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                st.write("**Informasi Transaksi**")
-                st.write(f"- **Transaction ID:** {trans_info['id']}")
-                st.write(f"- **Amount:** {trans_info['amount']}")
-                st.write(f"- **Time:** {trans_info['time']}")
-                st.write(f"- **Merchant:** {trans_info['merchant']}")
-                st.write(f"- **Customer Age:** {trans_info['age']}")
-            
-            with col2:
-                st.write("**Prediksi Model**")
-                
-                if trans_info['prediction'] == "FRAUD":
-                    st.error(f"🚨 **Prediksi:** {trans_info['prediction']}")
-                    st.progress(trans_info['confidence'] / 100)
-                    st.write(f"**Confidence:** {trans_info['confidence']:.1f}%")
-                else:
-                    st.success(f"✅ **Prediksi:** {trans_info['prediction']}")
-                    st.progress(trans_info['confidence'] / 100)
-                    st.write(f"**Confidence:** {trans_info['confidence']:.1f}%")
-                
-                if trans_info['prediction'] == trans_info['actual']:
-                    st.success(f"✅ **Actual:** {trans_info['actual']} (Correct)")
-                else:
-                    st.error(f"❌ **Actual:** {trans_info['actual']} (Incorrect)")
-            
-            if st.button("🧠 Generate LIME Explanation", type="primary"):
-                st.session_state.lime_generated = True
-                st.rerun()
-        
-        # LIME Results
-        if hasattr(st.session_state, 'lime_generated') and st.session_state.lime_generated:
-            st.subheader("🧠 Hasil Interpretasi LIME")
-            
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                st.write("**📊 Kontribusi Features terhadap Prediksi**")
-                
-                # Generate synthetic LIME explanation data
-                features = ['transaction_amount', 'transaction_hour', 'merchant_risk_score', 
-                           'customer_history', 'card_type', 'location_risk']
-                contributions = [0.42, 0.31, 0.28, -0.15, -0.08, 0.12]
-                colors = ['red' if c > 0 else 'green' for c in contributions]
-                
-                fig = go.Figure(go.Bar(
-                    x=contributions,
-                    y=features,
-                    orientation='h',
-                    marker_color=colors,
-                    text=[f'{c:+.2f}' for c in contributions],
-                    textposition='auto'
-                ))
-                fig.update_layout(
-                    title="LIME Feature Contributions",
-                    xaxis_title="Contribution to Fraud Prediction",
-                    height=400
-                )
-                st.plotly_chart(fig, use_container_width=True)
-            
-            with col2:
-                st.write("**🔍 Feature Analysis Detail**")
-                
-                # Detailed explanations
-                explanations = [
-                    ("transaction_amount", "+0.42", "Nilai transaksi tinggi ($15,450) meningkatkan risiko fraud", "red"),
-                    ("transaction_hour", "+0.31", "Transaksi pada jam 03:42 (dini hari) mencurigakan", "red"),
-                    ("merchant_risk_score", "+0.28", "Merchant memiliki riwayat transaksi mencurigakan", "red"),
-                    ("customer_history", "-0.15", "Customer memiliki riwayat transaksi yang baik", "green"),
-                    ("card_type", "-0.08", "Jenis kartu (Premium) umumnya legitimate", "green")
-                ]
-                
-                for feature, contrib, explanation, color in explanations:
-                    if color == "red":
-                        st.error(f"**{feature}** ({contrib}): {explanation}")
-                    else:
-                        st.success(f"**{feature}** ({contrib}): {explanation}")
-            
-            # Summary
-            st.subheader("📝 Ringkasan Interpretasi")
-            st.info("""
-            Model mengklasifikasikan transaksi ini sebagai **FRAUD** dengan confidence **89.3%**. 
-            
-            **Faktor Pendorong:**
-            - ✅ Nilai transaksi tinggi ($15,450) yang tidak biasa
-            - ✅ Waktu transaksi pada jam 03:42 (dini hari)  
-            - ✅ Risk score merchant yang tinggi
-            
-            **Faktor Penahan:**
-            - ❌ Customer memiliki riwayat yang baik
-            - ❌ Jenis kartu premium umumnya legitimate
-            
-            Meskipun ada faktor positif, kombinasi faktor risiko cukup kuat untuk mengindikasikan potensi fraud.
-            """)
+            st.plotly_chart(fig, use_container_width=True)
+    
+            # optional: HTML interaktif
+            with st.expander("Lihat visual LIME interaktif (HTML)"):
+                components.html(exp.as_html(), height=800, scrolling=True)
         
         # Navigation and Reset
         col1, col2, col3 = st.columns(3)
