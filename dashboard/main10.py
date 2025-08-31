@@ -957,7 +957,7 @@ elif st.session_state.current_step == 3:
                     cm = confusion_matrix(y_test, y_pred)
             
                     results_all.append({
-                        "method": selected_method,
+                        "method": selected_resampling,
                         "accuracy": acc,
                         "precision": prec,
                         "recall": rec,
