@@ -1160,7 +1160,7 @@ elif st.session_state.current_step == 4:
         # Buat explainer LIME dengan error handling
         try:
             explainer = LimeTabularExplainer(
-                training_data=X_train,
+                training_data=X_train.values,
                 feature_names=feature_names,
                 class_names=["Not Fraud", "Fraud"],
                 discretize_continuous=True,
@@ -1195,7 +1195,9 @@ elif st.session_state.current_step == 4:
             )
         
         # Tampilkan data transaksi yang dipilih
-        x = X_test.loc[idx].values
+        idx = st.number_input("Pilih indeks transaksi uji:", min_value=0, max_value=len(X_test)-1, value=0, step=1)
+        x = X_test.iloc[idx].valuess
+        print(x.shape, len(feature_names))
         
         with st.expander("📋 Data Transaksi yang Dipilih"):
             transaction_df = pd.DataFrame({
