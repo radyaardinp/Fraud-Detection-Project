@@ -1036,7 +1036,22 @@ elif st.session_state.current_step == 3:
                     } for r in all_results])
         
                     st.subheader("🔍 Perbandingan Semua Metode")
-                    st.dataframe(comp_df.style.highlight_max(axis=0, subset=["Accuracy","Precision","Recall","F1-Score"]), use_container_width=True)
+                    # Hitung selisih precision & recall
+                    comp_df["diff"] = abs(comp_df["Precision"] - comp_df["Recall"])
+                    comp_df["balance_score"] = comp_df["F1-Score"] - comp_df["diff"]
+                    
+                    # Cari metode dengan score terbaik
+                    best_idx = comp_df["balance_score"].idxmax()
+                    
+                    # Buat style: highlight cuma precision, recall, dan f1 di baris terbaik
+                    def highlight_best(row):
+                        if row.name == best_idx:
+                            return ["background-color: yellow" if col in ["Precision", "Recall", "F1-Score"] else "" for col in row.index]
+                        return ["" for _ in row.index]
+                    
+                    # Tampilkan tanpa kolom diff & balance_score
+                    comp_df_display = comp_df.drop(columns=["diff", "balance_score"])
+                    st.dataframe(comp_df_display.style.apply(highlight_best, axis=1), use_container_width=True)
                 
                 # Navigation buttons
                 col1, col2 = st.columns(2)
