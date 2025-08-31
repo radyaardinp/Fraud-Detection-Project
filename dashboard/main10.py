@@ -942,30 +942,29 @@ elif st.session_state.current_step == 3:
             
                     # Jalankan training untuk semua metode resampling
                     results_all = []
-                    for method in ["none", "smote", "enn"]:
-                        X_res, y_res = apply_resampling(method, X_train, y_train)
-                        act_func = activation_functions[activation_choice]
+                    X_res, y_res = apply_resampling(selected_resampling, X_train, y_train)
+                    act_func = activation_functions[activation_functions]
             
-                        # Train & Predict ELM
-                        W, b, beta = train_elm(X_res, y_res, hidden_neurons, activation=act_func)
-                        y_pred = predict_elm(X_test, W, b, beta, activation=act_func)
+                    # Train & Predict ELM
+                    W, b, beta = train_elm(X_res, y_res, hidden_neurons, activation=act_func)
+                    y_pred = predict_elm(X_test, W, b, beta, activation=act_func)
             
-                        # Metrics
-                        acc = accuracy_score(y_test, y_pred)
-                        prec = precision_score(y_test, y_pred, zero_division=0)
-                        rec = recall_score(y_test, y_pred, zero_division=0)
-                        f1 = f1_score(y_test, y_pred, zero_division=0)
-                        cm = confusion_matrix(y_test, y_pred)
+                    # Metrics
+                    acc = accuracy_score(y_test, y_pred)
+                    prec = precision_score(y_test, y_pred, zero_division=0)
+                    rec = recall_score(y_test, y_pred, zero_division=0)
+                    f1 = f1_score(y_test, y_pred, zero_division=0)
+                    cm = confusion_matrix(y_test, y_pred)
             
-                        results_all.append({
-                            "method": method,
-                            "accuracy": acc,
-                            "precision": prec,
-                            "recall": rec,
-                            "f1": f1,
-                            "cm": cm,
-                            "y_pred": y_pred
-                        })
+                    results_all.append({
+                        "method": method,
+                        "accuracy": acc,
+                        "precision": prec,
+                        "recall": rec,
+                        "f1": f1,
+                        "cm": cm,
+                        "y_pred": y_pred
+                    })
             
                     st.session_state.training_results = results_all
                     st.session_state.y_test = y_test
@@ -973,16 +972,13 @@ elif st.session_state.current_step == 3:
                     st.success("✅ Training selesai! Hasil evaluasi ditampilkan di bawah.")
                     st.rerun()
             
-            # Evaluasi Pemodelan
+            # Evaluasi sesuai pilihan user
             if st.session_state.get('model_trained', False):
                 results_all = st.session_state.training_results
-                st.session_state.y_test = y_test
-            
-                # pilih metode untuk lihat detail
-                method_choice = st.selectbox("🔍 Lihat detail evaluasi untuk metode:", ["none", "smote", "enn"])
-                chosen = [r for r in results_all if r["method"] == method_choice][0]
-            
-                st.subheader(f"🔄 Confusion Matrix ({method_choice.upper()})")
+                chosen = results_all[0]   # hanya 1 hasil
+                y_test = st.session_state.y_test
+        
+                st.subheader(f"🔄 Confusion Matrix ({chosen['method'].upper()})")
                 cm = chosen["cm"]
                 fig = go.Figure(data=go.Heatmap(
                     z=cm,
@@ -993,20 +989,51 @@ elif st.session_state.current_step == 3:
                     texttemplate="%{text}"
                 ))
                 st.plotly_chart(fig, use_container_width=True)
-            
+        
                 st.subheader("📊 Classification Report")
                 cr = classification_report(y_test, chosen["y_pred"], target_names=["Not Fraud", "Fraud"], output_dict=True)
                 st.dataframe(pd.DataFrame(cr).T, use_container_width=True)
-            
-                st.subheader("🔍 Perbandingan Pemodelan Menggunakan Extreme Learning Machine")
-                comp_df = pd.DataFrame([{
-                    "Method": r["method"],
-                    "Accuracy": r["accuracy"],
-                    "Precision": r["precision"],
-                    "Recall": r["recall"],
-                    "F1-Score": r["f1"]
-                } for r in results_all])
-                st.dataframe(comp_df.style.highlight_max(axis=0, subset=["Accuracy","Precision","Recall","F1-Score"]), use_container_width=True)
+        
+                # Tombol lihat perbandingan
+                if st.button("📊 Lihat Perbandingan Semua Metode"):
+                    X_train = st.session_state.X_train
+                    y_train = st.session_state.y_train
+                    X_test = st.session_state.X_test
+                    y_test = st.session_state.y_test
+                    act_func = activation_functions[activation_function]
+        
+                    all_results = []
+                    for method in ["none", "smote", "enn"]:
+                        X_res, y_res = apply_resampling(method, X_train, y_train)
+                        W, b, beta = train_elm(X_res, y_res, hidden_neurons, activation=act_func)
+                        y_pred = predict_elm(X_test, W, b, beta, activation=act_func)
+        
+                        acc = accuracy_score(y_test, y_pred)
+                        prec = precision_score(y_test, y_pred, zero_division=0)
+                        rec = recall_score(y_test, y_pred, zero_division=0)
+                        f1 = f1_score(y_test, y_pred, zero_division=0)
+                        cm = confusion_matrix(y_test, y_pred)
+        
+                        all_results.append({
+                            "method": method,
+                            "accuracy": acc,
+                            "precision": prec,
+                            "recall": rec,
+                            "f1": f1,
+                            "cm": cm,
+                            "y_pred": y_pred
+                        })
+        
+                    comp_df = pd.DataFrame([{
+                        "Method": r["method"],
+                        "Accuracy": r["accuracy"],
+                        "Precision": r["precision"],
+                        "Recall": r["recall"],
+                        "F1-Score": r["f1"]
+                    } for r in all_results])
+        
+                    st.subheader("🔍 Perbandingan Semua Metode")
+                    st.dataframe(comp_df.style.highlight_max(axis=0, subset=["Accuracy","Precision","Recall","F1-Score"]), use_container_width=True)
                 
                 # Navigation buttons
                 col1, col2 = st.columns(2)
