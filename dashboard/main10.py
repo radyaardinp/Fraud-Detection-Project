@@ -920,7 +920,7 @@ elif st.session_state.current_step == 3:
                 if method == "SMOTE":
                     return SMOTE(random_state=42).fit_resample(X, y)
                 elif method == "ENN":        
-                    return EditedNearestNeighbours(random_state=42).fit_resample(X, y)
+                    return EditedNearestNeighbours().fit_resample(X, y)
                 return X, y
     
             # ELM Parameters
