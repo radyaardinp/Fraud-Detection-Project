@@ -1057,7 +1057,7 @@ elif st.session_state.current_step == 3:
                     # === Penjelasan otomatis ===
                     st.subheader("📝 Interpretasi Otomatis")
                     st.write(
-                        f"Berdasarkan evaluasi, metode ELM **{best_row['Method'].upper()}** "
+                        f"Berdasarkan perbandingan evaluasi di atas, metode ELM **{best_row['Method'].upper()}** "
                         f"memiliki kombinasi Precision ({best_row['Precision']:.3f}) dan Recall ({best_row['Recall']:.3f}) "
                         f"yang paling seimbang, dengan F1-Score sebesar {best_row['F1-Score']:.3f}. "
                         "Hal ini menunjukkan metode ini mampu menjaga keseimbangan antara mengurangi false positives "
