@@ -1317,35 +1317,6 @@ elif st.session_state.current_step == 4:
                         if negative_features:
                             st.write(f"**Fitur yang mendukung prediksi Not Fraud:** {', '.join(negative_features[:3])}")
                     
-                    # Optional: HTML interaktif dengan improved styling
-                    with st.expander("🌐 Lihat Visual LIME Interaktif (HTML)"):
-                        try:
-                            html_content = exp.as_html()
-                            components.html(html_content, height=800, scrolling=True)
-                        except Exception as e:
-                            st.error(f"Error generating HTML visualization: {str(e)}")
-                    
-                    # Export explanation option
-                    with st.expander("💾 Export Hasil Analisis"):
-                        # Create summary text
-                        summary_text = f"""
-LIME Analysis Summary
-=====================
-Transaction Index: {idx}
-Actual Label: {'Fraud' if actual_label == 1 else 'Not Fraud'}
-Predicted Label: {predicted_class}
-Fraud Probability: {proba:.4f}
-Prediction Accuracy: {'Correct' if is_correct else 'Incorrect'}
-
-Feature Contributions:
-{lime_df[['Fitur', 'Kontribusi']].to_string(index=False)}
-                        """
-                except Exception as e:
-                    st.error(f"Error generating LIME explanation: {str(e)}")
-                    st.write("Debug info:")
-                    st.write(f"- X shape: {x.shape}")
-                    st.write(f"- Feature names length: {len(feature_names)}")
-                    st.write(f"- Model parameters available: {list(params.keys())}")
         
         # Navigation and Reset
         col1, col2, col3 = st.columns(3)
