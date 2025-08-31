@@ -1052,6 +1052,16 @@ elif st.session_state.current_step == 3:
                     # Tampilkan tanpa kolom diff & balance_score
                     comp_df_display = comp_df.drop(columns=["diff", "balance_score"])
                     st.dataframe(comp_df_display.style.apply(highlight_best, axis=1), use_container_width=True)
+
+                    # === Penjelasan otomatis ===
+                    st.subheader("📝 Interpretasi Otomatis")
+                    st.write(
+                        f"Berdasarkan evaluasi, metode **{best_row['Method'].upper()}** "
+                        f"memiliki kombinasi Precision ({best_row['Precision']:.3f}) dan Recall ({best_row['Recall']:.3f}) "
+                        f"yang paling seimbang, dengan F1-Score sebesar {best_row['F1-Score']:.3f}. "
+                        "Hal ini menunjukkan metode ini mampu menjaga keseimbangan antara mengurangi false positives "
+                        "dan meningkatkan kemampuan mendeteksi fraud."
+                    )
                 
                 # Navigation buttons
                 col1, col2 = st.columns(2)
@@ -1060,12 +1070,12 @@ elif st.session_state.current_step == 3:
                         st.session_state.current_step = 2
                         st.rerun()
                 with col2:
-                    if st.session_state.get('model_trained', False) and st.button("➡️ Lanjut ke Evaluasi", type="primary"):
+                    if st.session_state.get('model_trained', False) and st.button("➡️ Lanjut ke Visualisasi LIME", type="primary"):
                         st.session_state.current_step = 4
                         st.rerun()
         
 elif st.session_state.current_step == 4:
-    # Step 4: Evaluation
+    # Step 4: interpretasi LIME
     st.header("🔍 Interpretasi LIME")
     
     if not st.session_state.model_trained:
