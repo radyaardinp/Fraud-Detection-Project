@@ -1144,6 +1144,12 @@ elif st.session_state.current_step == 4:
         W, b, beta = params["W"], params["b"], params["beta"]
         act_func = params["activation"]
         feature_names = params["feature_names"]
+
+        def predict_proba_for_lime(X):
+            X = np.array(X, dtype=float)
+            if X.ndim == 1:
+                X = X.reshape(1, -1)
+            return predict_proba_elm(X, W, b, beta, activation=act_func)
     
         # Definisi fungsi prediksi probabilitas (fixed function name)
         def predict_proba_elm(X, W, b, beta, activation):
@@ -1213,13 +1219,13 @@ elif st.session_state.current_step == 4:
                     # Generate LIME explanation
                     exp = explainer.explain_instance(
                         data_row=x,
-                        predict_fn=predict_proba_elm,
+                        predict_fn=predict_proba_for_lime,
                         num_features=min(10, len(feature_names)),
                         num_samples=1000  # Increased for better stability
                     )
     
                     # Probabilitas model
-                    proba = predict_proba(x.reshape(1, -1))[0, 1]
+                    proba = predict_proba_for_lime(x.reshape(1, -1))[0, 1]
                     predicted_class = "Fraud" if proba >= 0.5 else "Not Fraud"
                     
                     # Display prediction results
