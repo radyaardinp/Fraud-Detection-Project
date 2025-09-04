@@ -859,11 +859,11 @@ elif st.session_state.current_step == 3:
             # Gabungkan untuk preview
             cols_to_preview = numeric_cols_for_scaling + categorical_encoded_cols
             # Preview sebelum scaling
-            st.write("**Data Sebelum Normalisasi (Training):**")
+            st.write("**Data Sebelum Standarisasi (Training):**")
             st.dataframe(st.session_state.X_train[cols_to_preview].head())
 
 
-            if st.button("⚡ Terapkan Normalisasi"):
+            if st.button("⚡ Terapkan Standarisasi"):
                 try:
                     # Backup sebelum scaling
                     st.session_state.X_train_before_norm = st.session_state.X_train.copy()
@@ -886,17 +886,17 @@ elif st.session_state.current_step == 3:
                     st.session_state.numeric_cols_scaled = numeric_cols_for_scaling
                     st.session_state.data_normalized = True
             
-                    st.success("✅ Data berhasil dinormalisasi!")
+                    st.success("✅ Data berhasil distandarisasi!")
             
                     # Preview sesudah scaling
-                    st.write("**Data Setelah Normalisasi (Training):**")
+                    st.write("**Data Setelah Standarisasi (Training):**")
                     st.dataframe(st.session_state.X_train[cols_to_preview].head())
             
                 except Exception as e:
-                    st.error(f"❌ Error saat normalisasi: {str(e)}")
+                    st.error(f"❌ Error saat standarisasi: {str(e)}")
 
         elif st.session_state.get("data_normalized", False):
-            st.success("✅ Data sudah dinormalisasi, siap untuk modelling!")
+            st.success("✅ Data sudah distandarisasi, siap untuk modelling!")
         
         # Training Section (only show after normalization)
         if st.session_state.get('data_normalized', False):
