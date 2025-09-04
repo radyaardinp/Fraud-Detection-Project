@@ -82,8 +82,8 @@ if 'current_step' not in st.session_state:
     st.session_state.feature_importance = None
 
 # Main header
-st.markdown('<div class="main-header">🛡️ Fraud Detection System Dashboard</div>', unsafe_allow_html=True)
-st.markdown('<div class="sub-header">Advanced AI-Powered Transaction Analysis</div>', unsafe_allow_html=True)
+st.markdown('<div class="main-header">🛡️ FraudX! 🛡️</div>', unsafe_allow_html=True)
+st.markdown('<div class="sub-header">Fraud Detection System Dashboard</div>', unsafe_allow_html=True)
 
 if st.session_state.current_step == 1:
     # Description
