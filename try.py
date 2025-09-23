@@ -573,19 +573,20 @@ elif st.session_state.current_step == 2:
         existing_drop_cols_model = [c for c in drop_cols_model if c in st.session_state.data.columns]
         
         if existing_drop_cols_model:
-            st.session_state.data = st.session_state.data.drop(columns=existing_drop_cols_model)
+            st.session_state.processed_data = st.session_state.data.drop(columns=existing_drop_cols_model).copy()
+        else:
             st.session_state.processed_data = st.session_state.data.copy()
 
-        # Navigation buttons
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            if st.button("⬅️ Kembali"):
-                st.session_state.current_step = 1
-                st.rerun()
-        with col3:
-            if st.button("➡️ Lanjut ke Analisis", type="primary"):
-                st.session_state.current_step = 3
-                st.rerun()
+# Navigation buttons
+col1, col2, col3 = st.columns(3)
+with col1:
+    if st.button("⬅️ Kembali"):
+        st.session_state.current_step = 1
+        st.rerun()
+with col3:
+    if st.button("➡️ Lanjut ke Analisis", type="primary"):
+        st.session_state.current_step = 3
+        st.rerun()
                 
 elif st.session_state.current_step == 3:
     # Step 3: Analysis
