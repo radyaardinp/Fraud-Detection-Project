@@ -575,7 +575,6 @@ elif st.session_state.current_step == 2:
         if existing_drop_cols_model:
             st.session_state.data = st.session_state.data.drop(columns=existing_drop_cols_model)
             st.session_state.processed_data = st.session_state.data.copy()
-            st.info(f"🧹 Kolom berikut dihapus untuk pemodelan: {', '.join(existing_drop_cols_model)}")
 
         # Navigation buttons
         col1, col2, col3 = st.columns(3)
