@@ -568,6 +568,15 @@ elif st.session_state.current_step == 2:
 
         st.markdown("---")
 
+        # === Drop kolom yang tidak dipakai untuk modelling ===
+        drop_cols_model = ['createdTime', 'updateTime', 'merchantId']
+        existing_drop_cols_model = [c for c in drop_cols_model if c in st.session_state.data.columns]
+        
+        if existing_drop_cols_model:
+            st.session_state.data = st.session_state.data.drop(columns=existing_drop_cols_model)
+            st.session_state.processed_data = st.session_state.data.copy()
+            st.info(f"🧹 Kolom berikut dihapus untuk pemodelan: {', '.join(existing_drop_cols_model)}")
+
         # Navigation buttons
         col1, col2, col3 = st.columns(3)
         with col1:
