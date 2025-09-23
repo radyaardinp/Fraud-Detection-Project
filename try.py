@@ -836,16 +836,16 @@ elif st.session_state.current_step == 3:
                     cr = classification_report(y_test, chosen["y_pred"], target_names=["Not Fraud", "Fraud"], output_dict=True)
                     st.dataframe(pd.DataFrame(cr).T, use_container_width=True)
         
-                # Navigation buttons
-                col1, col2 = st.columns(2)
-                with col1:
-                    if st.button("⬅️ Kembali"):
-                        st.session_state.current_step = 2
-                        st.rerun()
-                with col2:
-                    if st.session_state.get('model_trained', False) and st.button("➡️ Lanjut ke Visualisasi LIME", type="primary"):
-                        st.session_state.current_step = 4
-                        st.rerun()
+        # Navigation buttons
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("⬅️ Kembali"):
+                st.session_state.current_step = 2
+                st.rerun()
+        with col2:
+            if st.session_state.get('model_trained', False) and st.button("➡️ Lanjut ke Visualisasi LIME", type="primary"):
+                st.session_state.current_step = 4
+                st.rerun()
         
 elif st.session_state.current_step == 4:
     # Step 4: interpretasi LIME
