@@ -610,6 +610,9 @@ elif st.session_state.current_step == 3:
         with col2:
             if st.button("🔄 Split Dataset") or 'X_train' not in st.session_state:
                 df_clean = st.session_state.processed_data.copy()
+                # --- Drop kolom yang tidak dipakai untuk modelling ---
+                drop_cols = ["createdTime", "updatedTime", "merchantId"]  
+                df_clean = df_clean.drop(columns=drop_cols, errors="ignore")
 
                 if "fraud" not in df_clean.columns:
                     st.error("❌ Kolom target 'fraud' tidak ditemukan!")
