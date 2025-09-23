@@ -436,7 +436,7 @@ if st.session_state.current_step == 1:
             if st.button("➡️ Lanjut ke Preprocessing", type="primary"):
                 st.session_state.current_step = 2
                 st.rerun()
-    except Exception as e:
+      except Exception as e:
         st.error(f"⚠️ Gagal membaca file: {e}")
 
 elif st.session_state.current_step == 2:
