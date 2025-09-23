@@ -568,14 +568,23 @@ elif st.session_state.current_step == 2:
 
         st.markdown("---")
 
+        # === Ambil hasil rule-based dari session_state ===
+        df = st.session_state.data.copy()
+        
         # === Drop kolom yang tidak dipakai untuk modelling ===
         drop_cols_model = ['createdTime', 'updateTime', 'merchantId']
-        existing_drop_cols_model = [c for c in drop_cols_model if c in st.session_state.data.columns]
-        
+        existing_drop_cols_model = [c for c in drop_cols_model if c in df.columns]
         if existing_drop_cols_model:
-            st.session_state.processed_data = st.session_state.data.drop(columns=existing_drop_cols_model).copy()
-        else:
-            st.session_state.processed_data = st.session_state.data.copy()
+            df = df.drop(columns=existing_drop_cols_model)
+        
+        # === Encoding kategori ===
+        cat_cols = df.select_dtypes(include=["object", "category"]).columns.tolist()
+        if cat_cols:
+            df = pd.get_dummies(df, columns=cat_cols, drop_first=True)
+        
+        # === Simpan hasil akhir ke session_state ===
+        st.session_state.processed_data = df.copy()
+
 
 
     # Navigation buttons
