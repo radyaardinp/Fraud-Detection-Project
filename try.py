@@ -384,7 +384,7 @@ if st.session_state.current_step == 1:
           df = df.drop(columns=existing_drop_cols)
           
         df=convert_data_types(df)
-        st.session_state.data = df
+        st.session_state.data = df 
         st.success("✅ File berhasil diupload!")
         
         # Dataset preview
@@ -464,7 +464,7 @@ elif st.session_state.current_step == 2:
                 st.session_state.data = handle_missing_values(st.session_state.data)
 
                 # Simpan raw_data setelah misval ditangani
-                st.session_state.raw_data = copy.deepcopy(st.session_state.data)
+                st.session_state.raw_data = st.session_state.data.copy()
         
                 # Hitung missing setelah penanganan
                 missing_after = st.session_state.data.isnull().sum()
