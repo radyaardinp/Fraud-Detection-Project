@@ -577,6 +577,7 @@ elif st.session_state.current_step == 2:
         else:
             st.session_state.processed_data = st.session_state.data.copy()
 
+
     # Navigation buttons
     col1, col2, col3 = st.columns(3)
     with col1:
