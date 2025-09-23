@@ -429,13 +429,15 @@ if st.session_state.current_step == 1:
         col_info['Keterangan'] = col_info['Kolom'].apply(get_description)
 
         st.dataframe(col_info, use_container_width=True)
-        
+  
         # tombol selanjutnya
         col1, col2, col3 = st.columns([6, 2, 2])  
         with col3:
             if st.button("➡️ Lanjut ke Preprocessing", type="primary"):
                 st.session_state.current_step = 2
                 st.rerun()
+    except Exception as e:
+        st.error(f"⚠️ Gagal membaca file: {e}")
 
 elif st.session_state.current_step == 2:
     # Step 2: Preprocessing
