@@ -632,6 +632,7 @@ elif st.session_state.current_step == 3:
                 y = df_clean["fraud"]
                 
                 y = y.map({"Not Fraud": 0, "Fraud": 1}).astype(int)
+                y = y.values.reshape(-1, 1)
                 
                 test_ratio = test_size / 100
                 
