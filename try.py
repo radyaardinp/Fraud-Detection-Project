@@ -581,7 +581,9 @@ elif st.session_state.current_step == 2:
         cat_cols = df.select_dtypes(include=["object", "category"]).columns.tolist()
         cat_cols = [c for c in cat_cols if c != "fraud"]
         if cat_cols:
-            df = pd.get_dummies(df, columns=cat_cols, drop_first=True)
+            le = LabelEncoder()
+            for col in cat_cols:
+                df[col] = le.fit_transform(df[col].astype(str))
         
         # === Simpan hasil akhir ke session_state ===
         st.session_state.processed_data = df.copy()
