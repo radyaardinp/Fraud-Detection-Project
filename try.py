@@ -630,6 +630,9 @@ elif st.session_state.current_step == 3:
 
                 X = df_clean.drop(columns=["fraud"])
                 y = df_clean["fraud"]
+                
+                y = y.map({"Not Fraud": 0, "Fraud": 1}).astype(int)
+                
                 test_ratio = test_size / 100
                 
                 X_train, X_test, y_train, y_test = train_test_split(
