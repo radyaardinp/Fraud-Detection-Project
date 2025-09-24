@@ -579,13 +579,12 @@ elif st.session_state.current_step == 2:
         
         # === Encoding kategori ===
         cat_cols = df.select_dtypes(include=["object", "category"]).columns.tolist()
+        cat_cols = [c for c in cat_cols if c != "fraud"]
         if cat_cols:
             df = pd.get_dummies(df, columns=cat_cols, drop_first=True)
         
         # === Simpan hasil akhir ke session_state ===
         st.session_state.processed_data = df.copy()
-
-
 
     # Navigation buttons
     col1, col2, col3 = st.columns(3)
